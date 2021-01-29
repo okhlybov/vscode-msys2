@@ -1,7 +1,16 @@
 {
   "name": "msys2",
-  "displayName": "msys2",
-  "description": "MSYS2 support for VS Code",
+  "displayName": "MSYS2 support",
+  "description": "VS Code extension to set and retrieve MSYS2 configuration",
+  "publisher": "okhlybov",
+  "author": {
+    "name": "Oleg A. Khlybov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/okhlybov/vscode-msys2.git"
+  },
+  "homepage": "https://github.com/okhlybov/vscode-msys2",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.52.0"
@@ -27,7 +36,7 @@
     "onCommand:mingw64.bin",
     "onCommand:mingw64.cc.exe",
     "onCommand:mingw64.cxx.exe",
-    "onCommand:mingw64.fc.exe",
+    "onCommand:mingw64.fc.exe"
     
   ],
   "main": "./extension.js",
