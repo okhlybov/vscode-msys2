@@ -1,8 +1,8 @@
 {
   "name": "msys2",
   "displayName": "msys2",
-  "description": "MSYS2 cupport for VS Code",
-  "version": "0.0.1",
+  "description": "MSYS2 support for VS Code",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -10,8 +10,10 @@
     "Other"
   ],
   "activationEvents": [
+
     "onCommand:msys2.root",
     "onCommand:msys2.usr.bin",
+    "onCommand:msys2.bash.exe",
     "onCommand:msys2.cmake.exe",
     "onCommand:msys2.ninja.exe",
 
@@ -26,17 +28,10 @@
     "onCommand:mingw64.cc.exe",
     "onCommand:mingw64.cxx.exe",
     "onCommand:mingw64.fc.exe",
-
-    "onCommand:msys2.helloWorld"
+    
   ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "msys2.helloWorld",
-        "title": "Hello World"
-      }
-    ],
     "configuration": {
       "title": "MSYS2",
       "properties": {
@@ -48,12 +43,12 @@
         "mingw32.root": {
           "type": "string",
           "default": null,
-          "description": "Path to MinGW32 root directory; if not specified, will be deduced with msys2.root"
+          "description": "Path to MinGW32 root directory; if not specified, will be deduced with {msys2.root}"
         },
         "mingw64.root": {
           "type": "string",
           "default": null,
-          "description": "Path to MinGW64 root directory; if not specified, will be deduced with msys2.root"
+          "description": "Path to MinGW64 root directory; if not specified, will be deduced with {msys2.root}"
         }
       }
     }
