@@ -1,4 +1,4 @@
-# msys2 README
+# MSYS2 support extension for Visual Studio Code 
 
 This is the README for your extension "msys2". After writing up a brief description, we recommend including the following sections.
 

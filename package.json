@@ -11,7 +11,7 @@
   ],
   "activationEvents": [
     "onCommand:msys2.root",
-    "onCommand:msys2.bin",
+    "onCommand:msys2.usr.bin",
     "onCommand:msys2.cmake.exe",
     "onCommand:msys2.ninja.exe",
 

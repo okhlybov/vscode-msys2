@@ -28,20 +28,20 @@ function activate(context) {
 		return vscode.workspace.getConfiguration().get('msys2.root');
 	});
 
-	vscode.commands.registerCommand('msys2.bin', function () {
+	vscode.commands.registerCommand('msys2.usr.bin', function () {
 		return vscode.commands.executeCommand('msys2.root').then(root => {
-			return `${root}\\bin`;
+			return `${root}\\usr\\bin`;
 		});
 	});
 
 	vscode.commands.registerCommand('msys2.cmake.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {
+		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {
 			return `${bin}\\cmake.exe`;
 		});
 	});
 
 	vscode.commands.registerCommand('msys2.ninja.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {
+		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {
 			return `${bin}\\ninja.exe`;
 		});
 	});
