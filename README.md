@@ -31,7 +31,7 @@
     "keep": true
   },
   {
-    "name": "MinGW64",
+    "name": "MSYS2",
     "environmentVariables": {"PATH": "${command:msys2.usr.bin}"},
     "compilers": {
       "C": "${command:msys2.cc.exe}",
