@@ -1,16 +1,41 @@
 # MSYS2 support extension for Visual Studio Code 
 
+This extension brings in configuration and employment of the [MSYS2](https://www.msys2.org/) toolchains to the Visual Studio Code.
+
 ## Features
+
+-[CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
 
 ## Requirements
 
-## Extension Settings
+- 64-bit MSYS2 installation
 
-### CMake integration
+## Setup & Configuration
 
-This extension is primarily designed to work with the [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) extension.
+This extension is primarily designed to work with the CMakeTools extension.
 
-In order to configure per user MSYS2 CMakeTools Kits, issue the command **`F1`|> CMake: Edit user-local CMake kits** and paste the below configuration
+### Per user Visual Studio Code configuration
+
+The basic per user extension configuration is performed by issuing the command **`Ctrl+,`** and adding the below configuration to the `settings.json`
+
+```json
+{
+  "cmake.cmakePath": "${command:msys2.cmake.exe}",
+  "cmake.generator": "Ninja Multi-Config",
+  "cmake.configureSettings": {
+      "CMAKE_MAKE_PROGRAM": "${command:msys2.ninja.exe}",
+      "CMAKE_VERBOSE_MAKEFILE": true
+  },
+}
+```
+
+**Note** that in case of existing configuration the above JSON code should not be pasted verbatim. Instead, the keys inside the outer {} braces should be appended to configuration.
+
+The presented configuration employs the MSYS2 version of CMake and [Ninja](https://ninja-build.org/) as the generator tool instead of more common [GNU Make](https://www.gnu.org/software/make/). The reason is that MSYS2 versions of the tools make it possible to use MSYS2, MinGW32 and MinGW64 kits without changing the configuration.
+
+### CMakeTools integration
+
+In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`F1`|> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
 [
