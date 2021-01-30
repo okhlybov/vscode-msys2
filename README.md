@@ -22,7 +22,21 @@ The following steps are to be performed in order to configure a minimal useble M
 
 ### MSYS2 & MinGW installation
 
-### Per user Visual Studio Code required extensions
+### Per user Visual Studio Code extensions
+
+The following extension are required to be installed
+
+```
+ms-vscode.cmake-tools fougas.msys2
+```
+
+by opening the Visual Studio Code extensions panel with the **`Ctrl+Shift+X`** keyboard shortcut and pasting the above line into the dialog, then installing each of discovered extensions individually.
+
+Next come optional but recommended extensions which enhance the support
+
+```
+twxs.cmake
+```
 
 ### Per user Visual Studio Code configuration
 
@@ -110,4 +124,4 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 
 **Note** that the above configuration command is only available when the CMakeTools extension is active, e.g. when a CMake project is open.
 
-## Known Issues
+## Known issues & caveats
