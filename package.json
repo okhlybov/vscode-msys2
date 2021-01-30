@@ -25,18 +25,21 @@
     "onCommand:msys2.bash.exe",
     "onCommand:msys2.cmake.exe",
     "onCommand:msys2.ninja.exe",
+    "onCommand:msys2.make.exe",
     "onCommand:msys2.cc.exe",
     "onCommand:msys2.cxx.exe",
     "onCommand:msys2.fc.exe",
 
     "onCommand:mingw32.root",
     "onCommand:mingw32.bin",
+    "onCommand:mingw32.make.exe",
     "onCommand:mingw32.cc.exe",
     "onCommand:mingw32.cxx.exe",
     "onCommand:mingw32.fc.exe",
 
     "onCommand:mingw64.root",
     "onCommand:mingw64.bin",
+    "onCommand:mingw64.make.exe",
     "onCommand:mingw64.cc.exe",
     "onCommand:mingw64.cxx.exe",
     "onCommand:mingw64.fc.exe"
