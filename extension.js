@@ -25,6 +25,18 @@ function activate(context) {
 		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\ninja.exe`;});
 	});
 
+	vscode.commands.registerCommand('msys2.cc.exe', function () {
+		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gcc.exe`;});
+	});
+
+	vscode.commands.registerCommand('msys2.cxx.exe', function () {
+		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\g++.exe`;});
+	});
+
+	vscode.commands.registerCommand('msys2.fc.exe', function () {
+		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gfortran.exe`;});
+	});
+
 	vscode.commands.registerCommand('mingw32.root', function () {
 		const mingw = vscode.workspace.getConfiguration().get('mingw32.root');
 		if(mingw == null) {

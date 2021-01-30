@@ -25,6 +25,9 @@
     "onCommand:msys2.bash.exe",
     "onCommand:msys2.cmake.exe",
     "onCommand:msys2.ninja.exe",
+    "onCommand:msys2.cc.exe",
+    "onCommand:msys2.cxx.exe",
+    "onCommand:msys2.fc.exe",
 
     "onCommand:mingw32.root",
     "onCommand:mingw32.bin",
@@ -52,20 +55,15 @@
         "mingw32.root": {
           "type": "string",
           "default": null,
-          "description": "Path to MinGW32 root directory; if not specified, will be deduced with {msys2.root}"
+          "description": "Path to MinGW32 root directory; if not specified, will be constructed with {msys2.root}"
         },
         "mingw64.root": {
           "type": "string",
           "default": null,
-          "description": "Path to MinGW64 root directory; if not specified, will be deduced with {msys2.root}"
+          "description": "Path to MinGW64 root directory; if not specified, will be constructed with {msys2.root}"
         }
       }
     }
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "node ./test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^7.1.3",
