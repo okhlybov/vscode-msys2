@@ -8,6 +8,10 @@
 
 ### CMake integration
 
+This extension is primarily designed to work with the [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) extension.
+
+In order to configure per user MSYS2 CMakeTools Kits, issue the command **`F1`|> CMake: Edit user-local CMake kits** and paste the below configuration
+
 ```json
 [
   {
@@ -42,5 +46,7 @@
   }
 ]
 ```
+
+**Note** that the above configuration command is only visible when the CMakeTools extension is actvie, e.g. when a CMake project is open.
 
 ## Known Issues
