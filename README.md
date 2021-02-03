@@ -1,10 +1,12 @@
 # MSYS2 support extension for Visual Studio Code 
 
-This extension brings in configuration and employment of the [MSYS2](https://www.msys2.org/) & [MinGW](http://mingw-w64.org) toolchains to [Visual Studio Code](https://code.visualstudio.com/).
+This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/) & [MinGW](http://mingw-w64.org) toolchains to [Visual Studio Code](https://code.visualstudio.com/).
 
 ## Features
 
-- [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
+- [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration via Kits
+
+- Isolated operation where no per user PATH modification is neccessary
 
 ## Requirements
 
@@ -85,7 +87,7 @@ The `CMAKE_VERBOSE_MAKEFILE` parameter is optional and defaults to **false** whe
 
 #### CMakeTools integration
 
-In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`F1`|> CMake: Edit User-Local CMake Kits** and paste the configuration below
+In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`Ctrl+Shift+P`|> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
 [

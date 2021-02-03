@@ -17,6 +17,10 @@ function activate(context) {
 		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\bash.exe`;});
 	});
 
+	vscode.commands.registerCommand('msys2.gdb.exe', function () {
+		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gdb.exe`;});
+	});
+
 	vscode.commands.registerCommand('msys2.cmake.exe', function () {
 		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\cmake.exe`;});
 	});
@@ -54,6 +58,10 @@ function activate(context) {
 		return vscode.commands.executeCommand('mingw32.root').then(root => {return `${root}\\bin`;});
 	});
 
+	vscode.commands.registerCommand('mingw32.gdb.exe', function () {
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\gdb.exe`;});
+	});
+
 	vscode.commands.registerCommand('mingw32.cmake.exe', function () {
 		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\cmake.exe`;});
 	});
@@ -89,6 +97,10 @@ function activate(context) {
 
 	vscode.commands.registerCommand('mingw64.bin', function () {
 		return vscode.commands.executeCommand('mingw64.root').then(root => {return `${root}\\bin`;});
+	});
+
+	vscode.commands.registerCommand('mingw64.gdb.exe', function () {
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\gdb.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.cmake.exe', function () {

@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -23,6 +23,7 @@
     "onCommand:msys2.root",
     "onCommand:msys2.usr.bin",
     "onCommand:msys2.bash.exe",
+    "onCommand:msys2.gdb.exe",
     "onCommand:msys2.cmake.exe",
     "onCommand:msys2.make.exe",
     "onCommand:msys2.ninja.exe",
@@ -32,6 +33,7 @@
 
     "onCommand:mingw32.root",
     "onCommand:mingw32.bin",
+    "onCommand:mingw32.gdb.exe",
     "onCommand:mingw32.cmake.exe",
     "onCommand:mingw32.make.exe",
     "onCommand:mingw32.ninja.exe",
@@ -41,6 +43,7 @@
 
     "onCommand:mingw64.root",
     "onCommand:mingw64.bin",
+    "onCommand:mingw64.gdb.exe",
     "onCommand:mingw64.cmake.exe",
     "onCommand:mingw64.make.exe",
     "onCommand:mingw64.ninja.exe",
