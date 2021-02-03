@@ -1,5 +1,33 @@
 const vscode = require('vscode');
 
+const msys2rx = /msys2?/i;
+const mingw32rx = /mingw\s*32/i;
+const mingw64rx = /mingw\s*64/i;
+
+env = {MSYS2:1, MINGW32:2, MINGW64:3};
+
+// For use with switch() statement
+function buildkitenv() {
+	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
+		if(msys2rx.test(kit)) {
+			return env.MSYS2;
+		} else if(mingw32rx.test(kit)) {
+			return env.MINGW32;
+		} else if(mingw64rx.test(kit)) {
+			return env.MINGW64;
+		} else return null;
+	});
+};
+
+function buildkitexe(exe) {
+	switch(buildkitenv()) {
+		case env.MSYS2: return vscode.commands.executeCommand(`msys2.${exe}.exe`).then(exe => {return exe;});
+		case env.MINGW32: return vscode.commands.executeCommand(`mingw32.${exe}.exe`).then(exe => {return exe;});
+		case env.MINGW64: return vscode.commands.executeCommand(`mingw64.${exe}.exe`).then(exe => {return exe;});
+	}
+	return null;
+}
+
 /**
  * @param {vscode.ExtensionContext} context
  */
@@ -44,6 +72,9 @@ function activate(context) {
 	vscode.commands.registerCommand('msys2.fc.exe', function () {
 		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gfortran.exe`;});
 	});
+
+	// Select GDB according to current BuildKit set by the CMakeTools
+	vscode.commands.registerCommand('buildkit.gdb.exe', function () {return buildkitexe('gdb');});
 
 	vscode.commands.registerCommand('mingw32.root', function () {
 		const mingw = vscode.workspace.getConfiguration().get('mingw32.root');

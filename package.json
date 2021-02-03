@@ -19,6 +19,8 @@
     "Other"
   ],
   "activationEvents": [
+    
+    "onCommand:buildkit.gdb.exe",
 
     "onCommand:msys2.root",
     "onCommand:msys2.usr.bin",
