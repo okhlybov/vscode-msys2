@@ -20,7 +20,10 @@
   ],
   "activationEvents": [
     
-    "onCommand:buildkit.gdb.exe",
+    "onCommand:cmake.buildkit.cmake.exe",
+    "onCommand:cmake.buildkit.make.exe",
+    "onCommand:cmake.buildkit.ninja.exe",
+    "onCommand:cmake.buildkit.gdb.exe",
 
     "onCommand:msys2.root",
     "onCommand:msys2.usr.bin",

@@ -4,34 +4,46 @@ const msys2rx = /msys2?/i;
 const mingw32rx = /mingw\s*32/i;
 const mingw64rx = /mingw\s*64/i;
 
-env = {MSYS2:1, MINGW32:2, MINGW64:3};
-
-// For use with switch() statement
-function buildkitenv() {
+function BuildKit() {
 	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
 		if(msys2rx.test(kit)) {
-			return env.MSYS2;
+			return 'msys2';
 		} else if(mingw32rx.test(kit)) {
-			return env.MINGW32;
+			return 'mingw32';
 		} else if(mingw64rx.test(kit)) {
-			return env.MINGW64;
+			return 'mingw64';
 		} else return null;
 	});
 };
 
-function buildkitexe(exe) {
-	switch(buildkitenv()) {
-		case env.MSYS2: return vscode.commands.executeCommand(`msys2.${exe}.exe`).then(exe => {return exe;});
-		case env.MINGW32: return vscode.commands.executeCommand(`mingw32.${exe}.exe`).then(exe => {return exe;});
-		case env.MINGW64: return vscode.commands.executeCommand(`mingw64.${exe}.exe`).then(exe => {return exe;});
-	}
-	return null;
+function BuildKitExe(exe) {
+	return BuildKit().then(kit => {
+		switch(kit) {
+			case 'msys2': return vscode.commands.executeCommand(`msys2.${exe}.exe`).then(exe => {return exe;});
+			case 'mingw32': return vscode.commands.executeCommand(`mingw32.${exe}.exe`).then(exe => {return exe;});
+			case 'mingw64': return vscode.commands.executeCommand(`mingw64.${exe}.exe`).then(exe => {return exe;});
+			default: return Promise.resolve(null);
+		}
+	});
 }
 
-/**
- * @param {vscode.ExtensionContext} context
- */
 function activate(context) {
+
+	vscode.commands.registerCommand('cmake.buildkit.cmake.exe', function () {
+		return BuildKitExe('cmake').then(exe => {return exe;});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.ninja.exe', function () {
+		return BuildKitExe('ninja').then(exe => {return exe;});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.make.exe', function () {
+		return BuildKitExe('make').then(exe => {return exe;});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.gdb.exe', function () {
+		return BuildKitExe('gdb').then(exe => {return exe;});
+	});
 
 	vscode.commands.registerCommand('msys2.root', function () {
 		return vscode.workspace.getConfiguration().get('msys2.root');
@@ -73,16 +85,9 @@ function activate(context) {
 		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gfortran.exe`;});
 	});
 
-	// Select GDB according to current BuildKit set by the CMakeTools
-	vscode.commands.registerCommand('buildkit.gdb.exe', function () {return buildkitexe('gdb');});
-
 	vscode.commands.registerCommand('mingw32.root', function () {
 		const mingw = vscode.workspace.getConfiguration().get('mingw32.root');
-		if(mingw == null) {
-			return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\mingw32`;});
-		} else {
-			return mingw;
-		}
+		return mingw ? mingw : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\mingw32`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.bin', function () {
@@ -119,11 +124,7 @@ function activate(context) {
 
 	vscode.commands.registerCommand('mingw64.root', function () {
 		const mingw = vscode.workspace.getConfiguration().get('mingw64.root');
-		if(mingw == null) {
-			return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\mingw64`;});
-		} else {
-			return mingw;
-		}
+		return mingw ? mingw : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\mingw64`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.bin', function () {

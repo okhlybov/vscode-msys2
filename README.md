@@ -55,33 +55,22 @@ The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and
 
 #### CMake & generator configuration
 
+The following configuration settings are to be added to the per user `settings.json`:
+
 ```json
 {
-  "cmake.cmakePath": "${command:msys2.cmake.exe}",
+  "cmake.cmakePath": "${command:cmake.buildkit.cmake.exe}",
   "cmake.generator": "Ninja Multi-Config",
   "cmake.configureSettings": {
-      "CMAKE_MAKE_PROGRAM": "${command:msys2.ninja.exe}",
+      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.ninja.exe}",
       "CMAKE_VERBOSE_MAKEFILE": true
   }
 }
 ```
 
-The above configuration employs the MSYS2 build of CMake and [Ninja](https://ninja-build.org/) as the generator tool instead of a more common [GNU Make](https://www.gnu.org/software/make/). The reason is that MSYS2-specific builds of the tools make it possible to use MSYS2, MinGW32 and MinGW64 kits without altering the configuration.
+The above settings set preferred [Ninja](https://ninja-build.org/) as the generator tool thus enabling to build with either MSYS2 or MinGW toolchains with no settings modification required. The actual paths to executables are kept in sync with the CMakeTools build kit in effect.
 
-It is possible to use GNU Make but it requires to use the specific MinGW versions of CMake and GNU Make tools thus making the respective changes to the configuration defeating the _MinGW-neutrality_ feature of the setup.
-
-```json
-{
-  "cmake.cmakePath": "${command:mingw64.cmake.exe}",
-  "cmake.generator": "MinGW Makefiles",
-  "cmake.configureSettings": {
-      "CMAKE_MAKE_PROGRAM": "${command:mingw64.make.exe}",
-      "CMAKE_VERBOSE_MAKEFILE": true
-  }
-}
-```
-
-On the bright side, the above MinGW configuration _should_ work with standalone MinGW installation as it does not require the availability of MSYS2. `mingw64` is to be replaced with `mingw32` for 32-bit MinGW.
+It is also possible to revert to a more common [GNU Make](https://www.gnu.org/software/make/) at a cost of losing the build kit neutrality as MSYS2 and MinGW toolchains have different generator names.
 
 The `CMAKE_VERBOSE_MAKEFILE` parameter is optional and defaults to **false** when omitted. When set to **true** the generated makefiles output the command lines being executed.
 
@@ -127,3 +116,9 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 **Note** that the above configuration command is only available when the CMakeTools extension is active, e.g. when a CMake project is open.
 
 ## Known issues & caveats
+
+[0.1.0]
+The integrated terminal `terminal.integrated.shell.windows` setting so far does not actually perform command substitution effectively precluding the use of the package-provided `msys2.bash.exe` command to obtain the actual path to Bash executable.
+
+[0.2.0]
+When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.
