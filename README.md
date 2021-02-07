@@ -4,9 +4,11 @@ This extension brings in configuration and usage of the [MSYS2](https://www.msys
 
 ## Features
 
-- [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration via Kits
+- [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration via CMake Kits
 
-- Isolated operation where no per user PATH modification is neccessary
+- [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration
+
+- Isolated operation where no global PATH modification is neccessary
 
 ## Requirements
 
@@ -20,7 +22,7 @@ This extension brings in configuration and usage of the [MSYS2](https://www.msys
 
 This extension is primarily designed to work with the CMakeTools extension.
 
-The following steps are to be performed in order to configure a minimal useble MSYS2, MinGW and Visual Studio Code environments.
+The following steps are to be performed in order to configure a minimal useable MSYS2, MinGW and Visual Studio Code environments.
 
 ### MSYS2 & MinGW installation
 
@@ -29,12 +31,12 @@ The following steps are to be performed in order to configure a minimal useble M
 The following extension are required to be installed
 
 ```
-ms-vscode.cmake-tools fougas.msys2
+ms-vscode.cmake-tools ms-vscode.cpptools fougas.msys2
 ```
 
 by opening the Visual Studio Code extensions panel with the **`Ctrl+Shift+X`** keyboard shortcut and pasting the above line into the dialog, then installing each of discovered extensions individually.
 
-Next come optional but recommended extensions which enhance the support
+Next come optional but recommended extensions which enhance the usage experience
 
 ```
 twxs.cmake
@@ -115,10 +117,49 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 
 **Note** that the above configuration command is only available when the CMakeTools extension is active, e.g. when a CMake project is open.
 
+#### CppTools integration
+
+In order to configure the per project `.vscode/launch.json` configuration which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P`|> Open launch.json** and paste the configuration below
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${command:cmake.buildkit.launch.path}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "${command:cmake.buildkit.gdb.exe}",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
+```
+
+This runs the GDB debugger specific to the CMake build kit currently in effect.
+Also, it sets up the PATH environment variable to include both executable directory and toolchain binary directory for launcher to reach all the required dynamic libraries.
+
 ## Known issues & caveats
 
-[0.1.0]
-The integrated terminal `terminal.integrated.shell.windows` setting so far does not actually perform command substitution effectively precluding the use of the package-provided `msys2.bash.exe` command to obtain the actual path to Bash executable.
+[0.1.0] The integrated terminal `terminal.integrated.shell.windows` setting so far does not actually perform command substitution effectively precluding the use of the package-provided `msys2.bash.exe` command to obtain the actual path to Bash executable.
 
-[0.2.0]
-When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.
+[0.2.0] When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.

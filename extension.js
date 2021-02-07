@@ -4,6 +4,8 @@ const msys2rx = /msys2?/i;
 const mingw32rx = /mingw\s*32/i;
 const mingw64rx = /mingw\s*64/i;
 
+const pathSeparator = (process.platform == 'win32' ? ';' : ':');
+
 function BuildKit() {
 	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
 		if(msys2rx.test(kit)) {
@@ -16,18 +18,38 @@ function BuildKit() {
 	});
 };
 
-function BuildKitExe(exe) {
+function BuildKitExe(exe, fallback = null) {
 	return BuildKit().then(kit => {
 		switch(kit) {
 			case 'msys2': return vscode.commands.executeCommand(`msys2.${exe}.exe`).then(exe => {return exe;});
 			case 'mingw32': return vscode.commands.executeCommand(`mingw32.${exe}.exe`).then(exe => {return exe;});
 			case 'mingw64': return vscode.commands.executeCommand(`mingw64.${exe}.exe`).then(exe => {return exe;});
-			default: return Promise.resolve(null);
+			default: return Promise.resolve(fallback ? fallback : exe);
 		}
 	});
 }
 
 function activate(context) {
+
+	vscode.commands.registerCommand('cmake.buildkit.bin', function () {
+		return BuildKit().then(kit => {
+			switch(kit) {
+				case 'msys2': return vscode.commands.executeCommand(`msys2.usr.bin`).then(bin => {return bin;});
+				case 'mingw32': return vscode.commands.executeCommand(`mingw32.bin`).then(bin => {return bin;});
+				case 'mingw64': return vscode.commands.executeCommand(`mingw64.bin`).then(bin => {return bin;});
+				default: return Promise.resolve('');
+			}
+		});
+	});
+
+	// System-specific value of the PATH environment variable for the launch tasks
+	vscode.commands.registerCommand('cmake.buildkit.launch.path', function () {
+		return vscode.commands.executeCommand('cmake.buildkit.bin').then(binDir => {
+			return vscode.commands.executeCommand('cmake.getLaunchTargetDirectory').then(targetDir => {
+				return `${targetDir}${pathSeparator}${binDir}${pathSeparator}\$PATH`;
+			});
+		});
+	});
 
 	vscode.commands.registerCommand('cmake.buildkit.cmake.exe', function () {
 		return BuildKitExe('cmake').then(exe => {return exe;});
@@ -43,6 +65,18 @@ function activate(context) {
 
 	vscode.commands.registerCommand('cmake.buildkit.gdb.exe', function () {
 		return BuildKitExe('gdb').then(exe => {return exe;});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.cc.exe', function () {
+		return BuildKitExe('cc', 'gcc').then(exe => {return exe;});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.cxx.exe', function () {
+		return BuildKitExe('cxx', 'g++').then(exe => {return exe;});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.fc.exe', function () {
+		return BuildKitExe('fc', 'gfortran').then(exe => {return exe;});
 	});
 
 	vscode.commands.registerCommand('msys2.root', function () {
