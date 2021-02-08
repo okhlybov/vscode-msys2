@@ -38,7 +38,7 @@
     "onCommand:cmake.buildkit.fc.exe",
 
     "onCommand:msys2.root",
-    "onCommand:msys2.usr.bin",
+    "onCommand:msys2.bin",
     "onCommand:msys2.bash.exe",
     "onCommand:msys2.gdb.exe",
     "onCommand:msys2.cmake.exe",

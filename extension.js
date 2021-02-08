@@ -20,12 +20,7 @@ function BuildKit() {
 
 function BuildKitExe(exe, fallback = null) {
 	return BuildKit().then(kit => {
-		switch(kit) {
-			case 'msys2': return vscode.commands.executeCommand(`msys2.${exe}.exe`).then(exe => {return exe;});
-			case 'mingw32': return vscode.commands.executeCommand(`mingw32.${exe}.exe`).then(exe => {return exe;});
-			case 'mingw64': return vscode.commands.executeCommand(`mingw64.${exe}.exe`).then(exe => {return exe;});
-			default: return Promise.resolve(fallback ? fallback : exe);
-		}
+		return kit ? vscode.commands.executeCommand(`${kit}.${exe}.exe`).then(exe => {return exe;}) : Promise.resolve(fallback ? fallback : exe);
 	});
 }
 
@@ -33,12 +28,7 @@ function activate(context) {
 
 	vscode.commands.registerCommand('cmake.buildkit.bin', function () {
 		return BuildKit().then(kit => {
-			switch(kit) {
-				case 'msys2': return vscode.commands.executeCommand(`msys2.usr.bin`).then(bin => {return bin;});
-				case 'mingw32': return vscode.commands.executeCommand(`mingw32.bin`).then(bin => {return bin;});
-				case 'mingw64': return vscode.commands.executeCommand(`mingw64.bin`).then(bin => {return bin;});
-				default: return Promise.resolve('');
-			}
+			return kit ? vscode.commands.executeCommand(`${kit}.bin`).then(bin => {return bin;}) : Promise.resolve('');
 		});
 	});
 
@@ -83,40 +73,40 @@ function activate(context) {
 		return vscode.workspace.getConfiguration().get('msys2.root');
 	});
 
-	vscode.commands.registerCommand('msys2.usr.bin', function () {
+	vscode.commands.registerCommand('msys2.bin', function () {
 		return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\usr\\bin`;});
 	});
 
 	vscode.commands.registerCommand('msys2.bash.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\bash.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\bash.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.gdb.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gdb.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\gdb.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.cmake.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\cmake.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\cmake.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.make.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\make.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\make.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.ninja.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\ninja.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\ninja.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.cc.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gcc.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\gcc.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.cxx.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\g++.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\g++.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.fc.exe', function () {
-		return vscode.commands.executeCommand('msys2.usr.bin').then(bin => {return `${bin}\\gfortran.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\gfortran.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.root', function () {
