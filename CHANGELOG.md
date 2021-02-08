@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.3.0] ?
+## [0.3.0] 2021-2-8
 
 - Introduce CppTools support via `launch.json`
 
