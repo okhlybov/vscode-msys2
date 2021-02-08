@@ -104,7 +104,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   },
   {
     "name": "MSYS2",
-    "environmentVariables": {"PATH": "${command:msys2.usr.bin}"},
+    "environmentVariables": {"PATH": "${command:msys2.bin}"},
     "compilers": {
       "C": "${command:msys2.cc.exe}",
       "CXX": "${command:msys2.cxx.exe}",

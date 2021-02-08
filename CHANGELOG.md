@@ -2,7 +2,11 @@
 
 ## [0.3.0] ?
 
+- Introduce CppTools support via `launch.json`
+
 - Introduce CMakeTools' build kit -specific `bin` directory command and PATH command for use within `launch.json`
+
+- Per user settings template update
 
 - Documentation update
 
