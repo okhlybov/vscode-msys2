@@ -78,7 +78,7 @@ The `CMAKE_VERBOSE_MAKEFILE` parameter is optional and defaults to **false** whe
 
 #### CMakeTools integration
 
-In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`Ctrl+Shift+P`|> CMake: Edit User-Local CMake Kits** and paste the configuration below
+In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
 [
@@ -119,7 +119,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 
 #### CppTools integration
 
-In order to configure the per project `.vscode/launch.json` configuration which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P`|> Open launch.json** and paste the configuration below
+In order to configure the per project `.vscode/launch.json` configuration which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P` |> Open launch.json** and paste the configuration below
 
 ```json
 {

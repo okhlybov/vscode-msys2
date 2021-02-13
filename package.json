@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -19,6 +19,7 @@
     "cmake",
     "build",
     "msys2",
+    "mingw",
     "win32",
     "windows"
   ],

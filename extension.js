@@ -70,117 +70,117 @@ function activate(context) {
 	});
 
 	vscode.commands.registerCommand('msys2.root', function () {
-		return vscode.workspace.getConfiguration().get('msys2.root');
+		return vscode.workspace.getConfiguration().get('msys2.root').replace('\\', '/');
 	});
 
 	vscode.commands.registerCommand('msys2.bin', function () {
-		return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\usr\\bin`;});
+		return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/usr/bin`;});
 	});
 
 	vscode.commands.registerCommand('msys2.bash.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\bash.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/bash.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.gdb.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\gdb.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gdb.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.cmake.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\cmake.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.make.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\make.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/make.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.ninja.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\ninja.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/ninja.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.cc.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\gcc.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gcc.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.cxx.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\g++.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/g++.exe`;});
 	});
 
 	vscode.commands.registerCommand('msys2.fc.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}\\gfortran.exe`;});
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gfortran.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.root', function () {
 		const mingw = vscode.workspace.getConfiguration().get('mingw32.root');
-		return mingw ? mingw : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\mingw32`;});
+		return mingw ? mingw.replace('\\', '/') : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/mingw32`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.bin', function () {
-		return vscode.commands.executeCommand('mingw32.root').then(root => {return `${root}\\bin`;});
+		return vscode.commands.executeCommand('mingw32.root').then(root => {return `${root}/bin`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.gdb.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\gdb.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/gdb.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.cmake.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\cmake.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.make.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\mingw32-make.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mingw32-make.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.ninja.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\ninja.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/ninja.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.cc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\gcc.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/gcc.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.cxx.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\g++.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/g++.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.fc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}\\gfortran.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/gfortran.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.root', function () {
 		const mingw = vscode.workspace.getConfiguration().get('mingw64.root');
-		return mingw ? mingw : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}\\mingw64`;});
+		return mingw ? mingw.replace('\\', '/') : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/mingw64`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.bin', function () {
-		return vscode.commands.executeCommand('mingw64.root').then(root => {return `${root}\\bin`;});
+		return vscode.commands.executeCommand('mingw64.root').then(root => {return `${root}/bin`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.gdb.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\gdb.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/gdb.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.cmake.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\cmake.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.make.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\mingw32-make.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mingw32-make.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.ninja.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\ninja.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/ninja.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.cc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\gcc.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/gcc.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.cxx.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\g++.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/g++.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw64.fc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}\\gfortran.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/gfortran.exe`;});
 	});
 
 	console.log('MSYS2 support activated');

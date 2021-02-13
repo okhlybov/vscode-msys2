@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.1] 2021-2-13
+
+- Force all emitted paths to use forward slahes
+
 ## [0.3.0] 2021-2-8
 
 - Introduce CppTools support via `launch.json`
