@@ -72,6 +72,19 @@ The following configuration settings are to be added to the per user `settings.j
 
 The above settings set preferred [Ninja](https://ninja-build.org/) as the generator tool thus enabling to build with either MSYS2 or MinGW toolchains with no settings modification required. The actual paths to executables are kept in sync with the CMakeTools build kit in effect.
 
+**Note** that the default virtual Linux distribution for WSL2 is [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) which ships [CMake version 3.16](https://cmake.org/cmake/help/latest/release/3.16.html) whereas the CMake's [Ninja Multi-Config](https://cmake.org/cmake/help/latest/generator/Ninja%20Multi-Config.html) generator is implemented in [CMake version 3.17](https://cmake.org/cmake/help/latest/release/3.17.html). As a result, the above configuration will not work on WSL2. To make it work, revert to the always available [Ninja](https://cmake.org/cmake/help/latest/generator/Ninja.html) generator in `settings.json` as follows
+
+```json
+{
+  "cmake.cmakePath": "${command:cmake.buildkit.cmake.exe}",
+  "cmake.generator": "Ninja",
+  "cmake.configureSettings": {
+      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.ninja.exe}",
+      "CMAKE_VERBOSE_MAKEFILE": true
+  }
+}
+```
+
 It is also possible to revert to a more common [GNU Make](https://www.gnu.org/software/make/) at a cost of losing the build kit neutrality as MSYS2 and MinGW toolchains have different generator names.
 
 The `CMAKE_VERBOSE_MAKEFILE` parameter is optional and defaults to **false** when omitted. When set to **true** the generated makefiles output the command lines being executed.
