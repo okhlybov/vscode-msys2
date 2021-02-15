@@ -132,7 +132,9 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 
 #### CppTools integration
 
-In order to configure the per project `.vscode/launch.json` configuration which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P` |> Open launch.json** and paste the configuration below
+##### Launch & debug configuration
+
+In order to configure the per project configuration in `.vscode/launch.json` file which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P` |> Open launch.json** and paste the configuration below
 
 ```json
 {
@@ -168,8 +170,54 @@ In order to configure the per project `.vscode/launch.json` configuration which 
 }
 ```
 
-This runs the GDB debugger specific to the CMake build kit currently in effect.
+This configuration employs the GDB debugger specific to the CMake build kit currently in effect.
 Also, it sets up the PATH environment variable to include both executable directory and toolchain binary directory for launcher to reach all the required dynamic libraries.
+
+The configuration is expected to work in both MSYS2 and Linux environments with no modifications.
+
+#### IntelliSense configuration
+
+In order to enable the IntelliSense support which provides the code navigation capability the following per project configuration is to be put into the `.vscode/c_cpp_properties.json` file either manually or by issuing the command **`Ctrl+Shift+P` |> C/C++: Edit Configurations (JSON)** and paste the configuration below
+
+```json
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "cStandard": "c99",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "windows-gcc-x64",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "cStandard": "c99",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}
+```
+
+This configuration is set up to work with the CMakeTools extension which provides the toolchain in effect. 
+
+The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are likely to be tailoerd to meet the specific needs, though the default values can be used as a starting point.
 
 ## Known issues & caveats
 
