@@ -4,9 +4,9 @@ This extension brings in configuration and usage of the [MSYS2](https://www.msys
 
 ## Features
 
-- [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration via CMake Kits
+- [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
 
-- [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration
+- [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration 
 
 - Isolated operation where no global PATH modification is neccessary
 
@@ -42,6 +42,8 @@ Next come optional but recommended extensions which enhance the usage experience
 twxs.cmake
 ```
 
+which provides the CMake file syntax highlighting.
+
 ### Per user Visual Studio Code configuration
 
 The basic per user extension configuration is performed by issuing the keyboard shortcut **`Ctrl+,`** and pasting the below configuration to the `settings.json` configuration file.
@@ -72,7 +74,7 @@ The following configuration settings are to be added to the per user `settings.j
 
 The above settings set preferred [Ninja](https://ninja-build.org/) as the generator tool thus enabling to build with either MSYS2 or MinGW toolchains with no settings modification required. The actual paths to executables are kept in sync with the CMakeTools build kit in effect.
 
-**Note** that the default virtual Linux distribution for WSL2 is [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) which ships [CMake version 3.16](https://cmake.org/cmake/help/latest/release/3.16.html) whereas the CMake's [Ninja Multi-Config](https://cmake.org/cmake/help/latest/generator/Ninja%20Multi-Config.html) generator is implemented in [CMake version 3.17](https://cmake.org/cmake/help/latest/release/3.17.html). As a result, the above configuration will not work on WSL2. To make it work, revert to the always available [Ninja](https://cmake.org/cmake/help/latest/generator/Ninja.html) generator in `settings.json` as follows
+**Note** that the default virtual Linux distribution for WSL2 is [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) which ships the [CMake version 3.16](https://cmake.org/cmake/help/latest/release/3.16.html) whereas the CMake's [Ninja Multi-Config](https://cmake.org/cmake/help/latest/generator/Ninja%20Multi-Config.html) generator is implemented in the [CMake version 3.17](https://cmake.org/cmake/help/latest/release/3.17.html). As a result, the above configuration will not work on WSL2. To make it work, revert to the always available [Ninja](https://cmake.org/cmake/help/latest/generator/Ninja.html) generator in the per user `settings.json` as follows
 
 ```json
 {
@@ -84,6 +86,8 @@ The above settings set preferred [Ninja](https://ninja-build.org/) as the genera
   }
 }
 ```
+
+**at a cost** of losing the fast switching between release/debug builds without reconfiguration & rebuilding.
 
 It is also possible to revert to a more common [GNU Make](https://www.gnu.org/software/make/) at a cost of losing the build kit neutrality as MSYS2 and MinGW toolchains have different generator names.
 
