@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.4.0] 2021-2-18
+
+- Cygwin support
+
+- Per user toolchain template update
+
 ## [0.3.1] 2021-2-13
 
 - Force all emitted paths to use forward slahes

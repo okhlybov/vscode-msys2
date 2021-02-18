@@ -1,7 +1,7 @@
 {
   "name": "msys2",
-  "displayName": "MSYS2 support",
-  "description": "VS Code extension to set and retrieve MSYS2 configuration",
+  "displayName": "MSYS2/Cygwin/MinGW support",
+  "description": "VS Code extension to set and retrieve MSYS2/Cygwin/MinGW configuration",
   "publisher": "fougas",
   "author": {
     "name": "Oleg A. Khlybov"
@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -19,6 +19,7 @@
     "cmake",
     "build",
     "msys2",
+    "cygwin",
     "mingw",
     "win32",
     "windows"
@@ -48,6 +49,28 @@
     "onCommand:msys2.cc.exe",
     "onCommand:msys2.cxx.exe",
     "onCommand:msys2.fc.exe",
+
+    "onCommand:cygwin32.root",
+    "onCommand:cygwin32.bin",
+    "onCommand:cygwin32.bash.exe",
+    "onCommand:cygwin32.gdb.exe",
+    "onCommand:cygwin32.cmake.exe",
+    "onCommand:cygwin32.make.exe",
+    "onCommand:cygwin32.ninja.exe",
+    "onCommand:cygwin32.cc.exe",
+    "onCommand:cygwin32.cxx.exe",
+    "onCommand:cygwin32.fc.exe",
+
+    "onCommand:cygwin64.root",
+    "onCommand:cygwin64.bin",
+    "onCommand:cygwin64.bash.exe",
+    "onCommand:cygwin64.gdb.exe",
+    "onCommand:cygwin64.cmake.exe",
+    "onCommand:cygwin64.make.exe",
+    "onCommand:cygwin64.ninja.exe",
+    "onCommand:cygwin64.cc.exe",
+    "onCommand:cygwin64.cxx.exe",
+    "onCommand:cygwin64.fc.exe",
 
     "onCommand:mingw32.root",
     "onCommand:mingw32.bin",
@@ -80,15 +103,25 @@
           "default": "c:\\msys64",
           "description": "Path to MSYS2 root directory"
         },
+        "cygwin32.root": {
+          "type": "string",
+          "default": "c:\\cygwin",
+          "description": "Path to 32-bit Cygwin root directory"
+        },
+        "cygwin64.root": {
+          "type": "string",
+          "default": "c:\\cygwin64",
+          "description": "Path to 64-bit Cygwin root directory"
+        },
         "mingw32.root": {
           "type": "string",
           "default": null,
-          "description": "Path to MinGW32 root directory; if not specified, it will be defaulted to {msys2.root}\\mingw32"
+          "description": "Path to 32-bit MinGW root directory; if not specified, it will be defaulted to {msys2.root}\\mingw32"
         },
         "mingw64.root": {
           "type": "string",
           "default": null,
-          "description": "Path to MinGW64 root directory; if not specified, it will be defaulted to {msys2.root}\\mingw64"
+          "description": "Path to 64-bit MinGW root directory; if not specified, it will be defaulted to {msys2.root}\\mingw64"
         }
       }
     }

@@ -1,6 +1,6 @@
-# MSYS2 support extension for Visual Studio Code 
+# MSYS2/Cygwin/MinGW support extension for Visual Studio Code 
 
-This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/) & [MinGW](http://mingw-w64.org) toolchains to [Visual Studio Code](https://code.visualstudio.com/).
+This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/) and [MinGW](http://mingw-w64.org) toolchains to [Visual Studio Code](https://code.visualstudio.com/).
 
 ## Features
 
@@ -10,21 +10,21 @@ This extension brings in configuration and usage of the [MSYS2](https://www.msys
 
 - Isolated operation where no global PATH modification is neccessary
 
-## Requirements
+## Prerequisites
 
 - 64-bit Windows 7+
 
-- 64-bit MSYS2 installation
+- 64-bit MSYS2 environment
 
-- 32/64-bit MinGW installations
+- 32/64-bit Cygwin environments
+
+- 32/64-bit MinGW environments
 
 ## Setup & Configuration
 
 This extension is primarily designed to work with the CMakeTools extension.
 
-The following steps are to be performed in order to configure a minimal useable MSYS2, MinGW and Visual Studio Code environments.
-
-### MSYS2 & MinGW installation
+The following steps are to be performed in order to configure a minimal usable MSYS2, Cygwin MinGW and Visual Studio Code environments.
 
 ### Per user Visual Studio Code extensions
 
@@ -53,9 +53,17 @@ The basic per user extension configuration is performed by issuing the keyboard 
 
 #### MSYS2 & MinGW configuration
 
-The MSYS2 location is specified by the `msys2.root` configuration option in  the `settings.json` configuration file. It can be modified either from the VisualStudio Code UI configurator accessed with the keyboard shortcut **`Ctrl+,`** or by editing the `settings.json` file directly. By default the `msys2.root` is set to `c:\msys64` which is the default location proposed by the MSYS2 installer.
+The MSYS2 location is specified by the `msys2.root` configuration option in the `settings.json` configuration file. It can be modified either from the VisualStudio Code UI configurator accessed with the keyboard shortcut **`Ctrl+,`** or by editing the `settings.json` file directly. By default the `msys2.root` is set to `c:\msys64` which is the default location proposed by the MSYS2 installer.
 
 The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration options. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installation.
+
+#### Cygwin configuration
+
+The 32 and 64 bit Cygwin locations are specified by the respective `cygwin32.root` and `cygwin64.root` configuration options in the `settings.json` configuration file. It can be modified either from the VisualStudio Code UI configurator accessed with the keyboard shortcut **`Ctrl+,`** or by editing the `settings.json` file directly. By default the `cygwin32.root` is set to `c:\cygwin` and `cygwin64.root` is set to `c:\cygwin64` which are the default locations proposed by the Cygwin installers.
+
+The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration options. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installation.
+
+**Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw*.root` configuration options are to be set manually.
 
 #### CMake & generator configuration
 
@@ -126,6 +134,26 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
       "C": "${command:msys2.cc.exe}",
       "CXX": "${command:msys2.cxx.exe}",
       "Fortran": "${command:msys2.fc.exe}"
+    },
+    "keep": true
+  },
+  {
+    "name": "Cygwin32",
+    "environmentVariables": {"PATH": "${command:cygwin32.bin}"},
+    "compilers": {
+      "C": "${command:cygwin32.cc.exe}",
+      "CXX": "${command:cygwin32.cxx.exe}",
+      "Fortran": "${command:cygwin32.fc.exe}"
+    },
+    "keep": true
+  },
+  {
+    "name": "Cygwin64",
+    "environmentVariables": {"PATH": "${command:cygwin64.bin}"},
+    "compilers": {
+      "C": "${command:cygwin64.cc.exe}",
+      "CXX": "${command:cygwin64.cxx.exe}",
+      "Fortran": "${command:cygwin64.fc.exe}"
     },
     "keep": true
   }
