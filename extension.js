@@ -1,42 +1,46 @@
 const vscode = require('vscode');
 
-const msys2rx = /msys2?/i;
-const mingw32rx = /mingw\s*32/i;
-const mingw64rx = /mingw\s*64/i;
-const cygwin32rx = /cygwin(\s*32)?/i;
-const cygwin64rx = /cygwin\s*64/i;
-
-const pathSeparator = (process.platform == 'win32' ? ';' : ':');
-
+// Return canonic name of buildkit in effect or null if it is unrecognized
 function BuildKit() {
 	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
-		if(msys2rx.test(kit)) {
-			return 'msys2';
-		} else if(mingw64rx.test(kit)) {
-			return 'mingw64';
-		} else if(mingw32rx.test(kit)) {
-			return 'mingw32';
-		} else if(cygwin64rx.test(kit)) {
-			return 'cygwin64';
-		} else if(cygwin32rx.test(kit)) {
-			return 'cygwin32';
-		} else return null;
+		if(/msys2?/i.test(kit)) return 'msys2';
+		else if(/mingw\s*64/i.test(kit)) return 'mingw64';
+		else if(/mingw\s*32/i.test(kit)) return 'mingw32';
+		else if(/cygwin\s*64/i.test(kit)) return 'cygwin64';
+		else if(/cygwin(\s*32)?/i.test(kit)) return 'cygwin32';
+		else return null;
 	});
 };
 
+// Return executable path for the buildkit in effect
 function BuildKitExe(exe, fallback = null) {
 	return BuildKit().then(kit => {
-		return kit ? vscode.commands.executeCommand(`${kit}.${exe}.exe`).then(exe => {return exe;}) : Promise.resolve(fallback ? fallback : exe);
+		return kit ? vscode.commands.executeCommand(`${kit}.${exe}.exe`) : Promise.resolve(fallback ? fallback : exe);
 	});
 }
 
+// Return canonic generator name for cmake -G
+// This handles special generator name `Make` corresponding to the GNU Make family generators specific to the build kit in effect
+function Generator() {
+	const gtor = vscode.workspace.getConfiguration().get('cmake.buildkit.generator');
+	if(/make/i.test(gtor)) {
+		return BuildKit().then(kit => {
+			if(/msys.*/.test(kit)) return 'MSYS Makefiles';
+			else if(/mingw.*/.test(kit)) return 'MinGW Makefiles';
+			else return 'Unix Makefiles'; // Cygwin, WSL etc. all share standard makefile generator
+		});
+	} else return Promise.resolve(gtor);
+}
+
 function activate(context) {
+
+	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
 
 	// BuildKit
 
 	vscode.commands.registerCommand('cmake.buildkit.bin', function () {
 		return BuildKit().then(kit => {
-			return kit ? vscode.commands.executeCommand(`${kit}.bin`).then(bin => {return bin;}) : Promise.resolve('');
+			return kit ? vscode.commands.executeCommand(`${kit}.bin`) : Promise.resolve('');
 		});
 	});
 
@@ -49,32 +53,43 @@ function activate(context) {
 		});
 	});
 
+	vscode.commands.registerCommand('cmake.buildkit.generator', function () {
+		return Generator();
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.generator.exe', function () {
+		return Generator().then(gtor => {
+			if(/.*Makefiles/.test(gtor)) return BuildKitExe('make');
+			else if(/Ninja.*/.test(gtor)) return BuildKitExe('ninja');
+		});
+	});
+
 	vscode.commands.registerCommand('cmake.buildkit.cmake.exe', function () {
-		return BuildKitExe('cmake').then(exe => {return exe;});
+		return BuildKitExe('cmake');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.ninja.exe', function () {
-		return BuildKitExe('ninja').then(exe => {return exe;});
+		return BuildKitExe('ninja');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.make.exe', function () {
-		return BuildKitExe('make').then(exe => {return exe;});
+		return BuildKitExe('make');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.gdb.exe', function () {
-		return BuildKitExe('gdb').then(exe => {return exe;});
+		return BuildKitExe('gdb');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.cc.exe', function () {
-		return BuildKitExe('cc', 'gcc').then(exe => {return exe;});
+		return BuildKitExe('cc', 'gcc');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.cxx.exe', function () {
-		return BuildKitExe('cxx', 'g++').then(exe => {return exe;});
+		return BuildKitExe('cxx', 'g++');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.fc.exe', function () {
-		return BuildKitExe('fc', 'gfortran').then(exe => {return exe;});
+		return BuildKitExe('fc', 'gfortran');
 	});
 
 	// MSYS2

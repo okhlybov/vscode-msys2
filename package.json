@@ -29,6 +29,8 @@
   ],
   "activationEvents": [
     
+    "onCommand:cmake.buildkit.generator",
+    
     "onCommand:cmake.buildkit.bin",
     "onCommand:cmake.buildkit.launch.path",
     "onCommand:cmake.buildkit.cmake.exe",
@@ -98,6 +100,11 @@
     "configuration": {
       "title": "MSYS2",
       "properties": {
+        "cmake.buildkit.generator": {
+          "type": "string",
+          "default": "Ninja",
+          "description": "Generator for cmake -G"
+        },
         "msys2.root": {
           "type": "string",
           "default": "c:\\msys64",
