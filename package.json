@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -29,8 +29,6 @@
   ],
   "activationEvents": [
     
-    "onCommand:cmake.buildkit.generator",
-    
     "onCommand:cmake.buildkit.bin",
     "onCommand:cmake.buildkit.launch.path",
     "onCommand:cmake.buildkit.cmake.exe",
@@ -40,6 +38,7 @@
     "onCommand:cmake.buildkit.cc.exe",
     "onCommand:cmake.buildkit.cxx.exe",
     "onCommand:cmake.buildkit.fc.exe",
+    "onCommand:cmake.buildkit.generator.exe",
 
     "onCommand:msys2.root",
     "onCommand:msys2.bin",
@@ -100,11 +99,6 @@
     "configuration": {
       "title": "MSYS2",
       "properties": {
-        "cmake.buildkit.generator": {
-          "type": "string",
-          "default": "Ninja",
-          "description": "Generator for cmake -G"
-        },
         "msys2.root": {
           "type": "string",
           "default": "c:\\msys64",

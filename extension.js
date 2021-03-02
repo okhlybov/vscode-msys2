@@ -19,19 +19,6 @@ function BuildKitExe(exe, fallback = null) {
 	});
 }
 
-// Return canonic generator name for cmake -G
-// This handles special generator name `Make` corresponding to the GNU Make family generators specific to the build kit in effect
-function Generator() {
-	const gtor = vscode.workspace.getConfiguration().get('cmake.buildkit.generator');
-	if(/make/i.test(gtor)) {
-		return BuildKit().then(kit => {
-			if(/msys.*/.test(kit)) return 'MSYS Makefiles';
-			else if(/mingw.*/.test(kit)) return 'MinGW Makefiles';
-			else return 'Unix Makefiles'; // Cygwin, WSL etc. all share standard makefile generator
-		});
-	} else return Promise.resolve(gtor);
-}
-
 function activate(context) {
 
 	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
@@ -53,15 +40,10 @@ function activate(context) {
 		});
 	});
 
-	vscode.commands.registerCommand('cmake.buildkit.generator', function () {
-		return Generator();
-	});
-
 	vscode.commands.registerCommand('cmake.buildkit.generator.exe', function () {
-		return Generator().then(gtor => {
-			if(/.*Makefiles/.test(gtor)) return BuildKitExe('make');
-			else if(/Ninja.*/.test(gtor)) return BuildKitExe('ninja');
-		});
+		const gtor = vscode.workspace.getConfiguration().get('cmake.generator');
+		if(gtor == undefined || /.*Makefiles/.test(gtor)) return BuildKitExe('make'); // TODO more elaborate make tool selection taking the build kit name into account
+		else if(/Ninja.*/.test(gtor)) return BuildKitExe('ninja');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.cmake.exe', function () {
