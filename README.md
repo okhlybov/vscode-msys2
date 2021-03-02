@@ -1,105 +1,132 @@
 # MSYS2/Cygwin/MinGW support extension for Visual Studio Code 
 
-This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/) and [MinGW](http://mingw-w64.org) toolchains to [Visual Studio Code](https://code.visualstudio.com/).
+This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/) and [MinGW](http://mingw-w64.org) toolchains to the [Visual Studio Code](https://code.visualstudio.com/).
+
+Technically the extension provides a set of commands for use with the `${command:...}` substitution feature used throughout the VS Code and its extensions to enhance their configurability. These commands return full paths to the respective toolchain-specific executables such as the CMake itself, generators, compilers etc.
 
 ## Features
 
 - [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
 
-- [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration 
+  - 32/64 bit MSYS2/Cygwin/MinGW toolchain configurations
+
+- [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration
+
+  - Cross-language [debugging with GDB](https://code.visualstudio.com/docs/cpp/cpp-debug)
+
+  - Code navigation with [IntelliSense](https://code.visualstudio.com/docs/editor/intellisense)
 
 - Isolated operation where no global PATH modification is neccessary
 
-## Prerequisites
-
-- 64-bit Windows 7+
-
-- 64-bit MSYS2 environment
-
-- 32/64-bit Cygwin environments
-
-- 32/64-bit MinGW environments
-
 ## Setup & Configuration
 
-This extension is primarily designed to work with the CMakeTools extension.
+This extension is primarily designed to work with the CMakeTools extension although it is possible to make use of it with any build system which utilizes the command substitution capability.
 
 The following steps are to be performed in order to configure a minimal usable MSYS2, Cygwin MinGW and Visual Studio Code environments.
 
+**Hint** the VS Code canonic `Ctrl+Shift+P` command palette shortcut extensively used below has a very convenient `F1` alias.
+
 ### Per user Visual Studio Code extensions
 
-The following extension are required to be installed
+The following extensions are to be installed
 
 ```
 ms-vscode.cmake-tools ms-vscode.cpptools fougas.msys2
 ```
 
-by opening the Visual Studio Code extensions panel with the **`Ctrl+Shift+X`** keyboard shortcut and pasting the above line into the dialog, then installing each of discovered extensions individually.
+by opening the [Visual Studio Code extensions](https://code.visualstudio.com/docs/editor/extension-gallery) panel with the **`Ctrl+Shift+X`** keyboard shortcut and pasting the above line into the entry, then installing each of highlighted extensions individually.
 
-Next come optional but recommended extensions which enhance the usage experience
+Next come optional yet recommended extensions which enhance the usage experience
 
 ```
-twxs.cmake
+twxs.cmake krvajalm.linter-gfortran
 ```
 
-which provides the CMake file syntax highlighting.
+which provide the CMake and Fortran file syntax highlighting, respectively.
 
 ### Per user Visual Studio Code configuration
 
-The basic per user extension configuration is performed by issuing the keyboard shortcut **`Ctrl+,`** and pasting the below configuration to the `settings.json` configuration file.
+Currently the MSYS2 extension provides no means of auto-detecting the supported toolchain locations.
 
-**Note** that in case of existing configuration the above JSON configuration should not be pasted verbatim. Instead, the keys inside the outer {} braces should be appended to configuration.
-
+Instead, it is configured manually via the per user [configuration settings](https://code.visualstudio.com/docs/getstarted/settings) specified in the `settings.json` configuration file.
+These settings can be set either via the UI or by direct editing the `settings.json` file in the form of raw JSON data.
+In either case, the settings are accessible via the **`Ctrl+,`** keyboard shortcut.
 
 #### MSYS2 & MinGW configuration
 
-The MSYS2 location is specified by the `msys2.root` configuration option in the `settings.json` configuration file. It can be modified either from the VisualStudio Code UI configurator accessed with the keyboard shortcut **`Ctrl+,`** or by editing the `settings.json` file directly. By default the `msys2.root` is set to `c:\msys64` which is the default location proposed by the MSYS2 installer.
+The (64-bit) MSYS2 location is specified by the `msys2.root` configuration setting in the `settings.json` file which is set to `c:\msys64` by default as it is the default location proposed by the MSYS2 installer. This specifically means that no manual configuration is required when MSYS2 is installed into default location.
 
-The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration options. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installation.
+The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration settings. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installations.
 
 #### Cygwin configuration
 
-The 32 and 64 bit Cygwin locations are specified by the respective `cygwin32.root` and `cygwin64.root` configuration options in the `settings.json` configuration file. It can be modified either from the VisualStudio Code UI configurator accessed with the keyboard shortcut **`Ctrl+,`** or by editing the `settings.json` file directly. By default the `cygwin32.root` is set to `c:\cygwin` and `cygwin64.root` is set to `c:\cygwin64` which are the default locations proposed by the Cygwin installers.
+The 32/64-bit Cygwin locations are specified by the `cygwin32.root` and `cygwin64.root` configuration settings in the `settings.json` file which are set to `c:\cygwin` and `c:\cygwin64` by default, respectively, as they are the default locations proposed by the Cygwin installers.
 
-The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration options. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installation.
-
-**Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw*.root` configuration options are to be set manually.
+**Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw*.root` configuration settings are to be set manually.
 
 #### CMake & generator configuration
 
-The following configuration settings are to be added to the per user `settings.json`:
+The CMakeTools-specific configuration is normally done per user by editing the `settings.json` file either manually or through the VS Code's UI. There are two parts which are to be configured: the CMake itself and the CMake's [generator tool](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html). While it is sufficient to set the `cmake.cmakePath` configuration setting for the CMake part, the latter is a more involved. Of all CMake-supported generators there are two useful ones: [GNU Make](https://www.gnu.org/software/make/) Makefile and [Ninja](https://ninja-build.org/) generators with the latter being strongly recommended.
+
+**Note** that any changes to the generator settings will most likely require reloading the VS Code window **and** project reconfiguration afterwards (see the Troubleshooting section below).
+
+##### Makefile generator configuration
+
+Even though the Ninja is a recommended generator, the Makefile generator is a default one (for a reason). While perfectly useful, the Makefile generator suffers from the naming problem which hinders the configuration's platform independence: there are different Makefile generators for different environments. Specifically, the MSYS2's generator is named `MSYS Makefiles`, the MinGW's is named `MinGW Makefiles` while Cygwin and WSL share the same `Unix Makefiles` generator with all three producing **incompatible** Makefiles.
+
+To overcome this problem the MSYS2 extension's configuration relies on default generator selection mechanism implemented in the CMakeTools. For this to work, the `cmake.generator` configuration setting must be **unset** as shown in the following `settings.json` configuration file.
 
 ```json
 {
   "cmake.cmakePath": "${command:cmake.buildkit.cmake.exe}",
-  "cmake.generator": "Ninja Multi-Config",
+  "cmake.preferredGenerators": ["Unix Makefiles"],
   "cmake.configureSettings": {
-      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.ninja.exe}",
-      "CMAKE_VERBOSE_MAKEFILE": true
+      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.generator.exe}",
+      "CMAKE_VERBOSE_MAKEFILE": false
   }
 }
 ```
 
-The above settings set preferred [Ninja](https://ninja-build.org/) as the generator tool thus enabling to build with either MSYS2 or MinGW toolchains with no settings modification required. The actual paths to executables are kept in sync with the CMakeTools build kit in effect.
+This configuration is expected to work unchanged across all supported environments: native Windows (MinGW), unixized Windows (MSYS2, Cygwin) and managed Linux (WSL).
 
-**Note** that the default virtual Linux distribution for WSL2 is [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) which ships the [CMake version 3.16](https://cmake.org/cmake/help/latest/release/3.16.html) whereas the CMake's [Ninja Multi-Config](https://cmake.org/cmake/help/latest/generator/Ninja%20Multi-Config.html) generator is implemented in the [CMake version 3.17](https://cmake.org/cmake/help/latest/release/3.17.html). As a result, the above configuration will not work on WSL2. To make it work, revert to the always available [Ninja](https://cmake.org/cmake/help/latest/generator/Ninja.html) generator in the per user `settings.json` as follows
+##### Ninja generator configuration
+
+The Ninja generator configuration is an extension to the Makefile generator's with the explicit `cmake.generator` setting being the only addition:
+
 
 ```json
 {
-  "cmake.cmakePath": "${command:cmake.buildkit.cmake.exe}",
   "cmake.generator": "Ninja",
+  "cmake.cmakePath": "${command:cmake.buildkit.cmake.exe}",
+  "cmake.preferredGenerators": ["Unix Makefiles"],
   "cmake.configureSettings": {
-      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.ninja.exe}",
-      "CMAKE_VERBOSE_MAKEFILE": true
+      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.generator.exe}",
+      "CMAKE_VERBOSE_MAKEFILE": false
   }
 }
 ```
 
-**at a cost** of losing the fast switching between release/debug builds without reconfiguration & rebuilding.
+This way the hop between Makefile and Ninja is just a `cmake.generator` configuration setting away.
 
-It is also possible to revert to a more common [GNU Make](https://www.gnu.org/software/make/) at a cost of losing the build kit neutrality as MSYS2 and MinGW toolchains have different generator names.
+##### Multi-Config Ninja generator configuration
 
-The `CMAKE_VERBOSE_MAKEFILE` parameter is optional and defaults to **false** when omitted. When set to **true** the generated makefiles output the command lines being executed.
+This is the most comfortable generator to use with CMake as it accounts for the fast switching between different build types (Debug/Release, for example) with no project reconfiguration & recompilation.
+
+```json
+{
+  "cmake.generator": "Ninja Multi-Config",
+  "cmake.cmakePath": "${command:cmake.buildkit.cmake.exe}",
+  "cmake.preferredGenerators": ["Unix Makefiles"],
+  "cmake.configureSettings": {
+      "CMAKE_MAKE_PROGRAM": "${command:cmake.buildkit.generator.exe}",
+      "CMAKE_VERBOSE_MAKEFILE": false
+  }
+}
+```
+
+**There is a problem** with this generator, though: the default virtual Linux distribution for WSL2 is [Ubuntu 20.04](https://releases.ubuntu.com/20.04/) which ships the [CMake version 3.16](https://cmake.org/cmake/help/latest/release/3.16.html) whereas the CMake's [Ninja Multi-Config](https://cmake.org/cmake/help/latest/generator/Ninja%20Multi-Config.html) generator is implemented in the [CMake version 3.17](https://cmake.org/cmake/help/latest/release/3.17.html). As a result, the above configuration will not currently work on stock WSL2's virtual Linux (but __might__ work on custom Linuxes, such as [openSUSE Leap](https://en.opensuse.org/openSUSE:WSL)).
+
+Anyway, the switching between Ninja and Multi-Config Ninja is as simple as changing the `cmake.generator` configuration setting.
 
 #### CMakeTools integration
 
@@ -109,6 +136,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 [
   {
     "name": "MinGW32",
+    "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:mingw32.bin}"},
     "compilers": {
       "C": "${command:mingw32.cc.exe}",
@@ -119,6 +147,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   },
   {
     "name": "MinGW64",
+    "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:mingw64.bin}"},
     "compilers": {
       "C": "${command:mingw64.cc.exe}",
@@ -129,6 +158,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   },
   {
     "name": "MSYS2",
+    "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:msys2.bin}"},
     "compilers": {
       "C": "${command:msys2.cc.exe}",
@@ -139,6 +169,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   },
   {
     "name": "Cygwin32",
+    "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:cygwin32.bin}"},
     "compilers": {
       "C": "${command:cygwin32.cc.exe}",
@@ -149,6 +180,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   },
   {
     "name": "Cygwin64",
+    "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:cygwin64.bin}"},
     "compilers": {
       "C": "${command:cygwin64.cc.exe}",
@@ -250,6 +282,14 @@ In order to enable the IntelliSense support which provides the code navigation c
 This configuration is set up to work with the CMakeTools extension which provides the toolchain in effect. 
 
 The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are likely to be tailoerd to meet the specific needs, though the default values can be used as a starting point.
+
+## Troubleshooting
+
+The MSYS2 is a very simple extension which should work well out of the box and 90% of the problems can be resolved by following two simple steps:
+
+1. Reload the VS Code window with **`Ctrl+Shift+P` |> Developer: Reload Window**
+
+2. Reconfigure the CMake project with with **`Ctrl+Shift+P` |> CMake: Delete Cache and Reconfigure**
 
 ## Known issues & caveats
 

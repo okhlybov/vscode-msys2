@@ -1,10 +1,20 @@
 # Change Log
 
+## [0.5.0] 2021-3-2
+
+- Makefile generator settings unification
+
+- CMakeTools' build kit settings template update
+
+- VS Code's per user settings template update
+
+- Documentation update
+
 ## [0.4.0] 2021-2-18
 
 - Cygwin support
 
-- Per user toolchain template update
+- CMakeTools' build kit settings template update
 
 ## [0.3.1] 2021-2-13
 
@@ -16,7 +26,7 @@
 
 - Introduce CMakeTools' build kit -specific `bin` directory command and PATH command for use within `launch.json`
 
-- Per user settings template update
+- VS Code's per user settings template update
 
 - Documentation update
 
@@ -24,7 +34,7 @@
 
 - Introduce a few CMakeTools' build kit -specific commands `cmake.buildkit.*.exe` to enable the use of kit-specific CMake & generator tools instead of the generic MSYS2-specific ones.
 
-- Per user settings template update
+- VS Code's per user settings template update
 
 - Documentation update
 
