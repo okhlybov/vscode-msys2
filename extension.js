@@ -19,6 +19,10 @@ function BuildKitExe(exe, fallback = null) {
 	});
 }
 
+function MinGWProvider(bit) {
+	return vscode.workspace.getConfiguration().get(`mingw${bit}.root`) ? null : vscode.workspace.getConfiguration().get(`mingw${bit}.provider`);
+}
+
 function activate(context) {
 
 	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
@@ -203,8 +207,11 @@ function activate(context) {
 	// MinGW32
 
 	vscode.commands.registerCommand('mingw32.root', function () {
-		const mingw = vscode.workspace.getConfiguration().get('mingw32.root');
-		return mingw ? mingw.replace('\\', '/') : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/mingw32`;});
+		switch(prov = MinGWProvider(32)) {
+			case 'msys2': return vscode.commands.executeCommand(`${prov}.root`).then(root => {return `${root}/mingw32`;});
+			case 'cygwin32': case 'cygwin64': return vscode.commands.executeCommand(`${prov}.root`);
+			default: return vscode.workspace.getConfiguration().get(`mingw32.root`).replace('\\', '/');
+		}
 	});
 
 	vscode.commands.registerCommand('mingw32.bin', function () {
@@ -220,7 +227,9 @@ function activate(context) {
 	});
 
 	vscode.commands.registerCommand('mingw32.make.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mingw32-make.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/make.exe` : `${bin}/mingw32-make.exe`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw32.ninja.exe', function () {
@@ -228,22 +237,31 @@ function activate(context) {
 	});
 
 	vscode.commands.registerCommand('mingw32.cc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/gcc.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/i686-w64-mingw32-gcc.exe` : `${bin}/gcc.exe`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw32.cxx.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/g++.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/i686-w64-mingw32-g++.exe` : `${bin}/g++.exe`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw32.fc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/gfortran.exe`;});
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/i686-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
+		});
 	});
 
 	// MinGW64
 
 	vscode.commands.registerCommand('mingw64.root', function () {
-		const mingw = vscode.workspace.getConfiguration().get('mingw64.root');
-		return mingw ? mingw.replace('\\', '/') : vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/mingw64`;});
+		switch(prov = MinGWProvider(64)) {
+			case 'msys2': return vscode.commands.executeCommand(`${prov}.root`).then(root => {return `${root}/mingw64`;});
+			case 'cygwin32': case 'cygwin64': return vscode.commands.executeCommand(`${prov}.root`);
+			default: return vscode.workspace.getConfiguration().get(`mingw64.root`).replace('\\', '/');
+		}
 	});
 
 	vscode.commands.registerCommand('mingw64.bin', function () {
@@ -259,7 +277,9 @@ function activate(context) {
 	});
 
 	vscode.commands.registerCommand('mingw64.make.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mingw32-make.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/make.exe` : `${bin}/mingw32-make.exe`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw64.ninja.exe', function () {
@@ -267,18 +287,24 @@ function activate(context) {
 	});
 
 	vscode.commands.registerCommand('mingw64.cc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/gcc.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gcc.exe` : `${bin}/gcc.exe`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw64.cxx.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/g++.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-g++.exe` : `${bin}/g++.exe`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw64.fc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/gfortran.exe`;});
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
+			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
+		});
 	});
 
-	console.log('MSYS2 support activated');
+	console.log('MSYS2 extension activated');
 
 }
 

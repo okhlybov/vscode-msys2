@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -114,15 +114,25 @@
           "default": "c:\\cygwin64",
           "description": "Path to 64-bit Cygwin root directory"
         },
+        "mingw32.provider": {
+          "type": "string",
+          "default": "msys2",
+          "description": "32-bit MinGW location provider [msys2, cygwin32, cygwin64] if {mingw32.root} if not set explicitly"
+        },
         "mingw32.root": {
           "type": "string",
           "default": null,
-          "description": "Path to 32-bit MinGW root directory; if not specified, it will be defaulted to {msys2.root}\\mingw32"
+          "description": "Path to 32-bit MinGW root directory; if not specified, it will be set according to {mingw32.provider} setting"
+        },
+        "mingw64.provider": {
+          "type": "string",
+          "default": "msys2",
+          "description": "64-bit MinGW location provider [msys2, cygwin32, cygwin64] if {mingw64.root} if not set explicitly"
         },
         "mingw64.root": {
           "type": "string",
           "default": null,
-          "description": "Path to 64-bit MinGW root directory; if not specified, it will be defaulted to {msys2.root}\\mingw64"
+          "description": "Path to 64-bit MinGW root directory; if not specified, it will be set according to {mingw64.provider} setting"
         }
       }
     }
