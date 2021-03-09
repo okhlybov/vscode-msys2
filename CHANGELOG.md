@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.6.0] 2021-3-9
+
+- Add MinGW provider selector
+
+- Documentation update
+
 ## [0.5.0] 2021-3-2
 
 - Makefile generator settings unification

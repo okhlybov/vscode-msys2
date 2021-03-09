@@ -64,6 +64,23 @@ The 32/64-bit Cygwin locations are specified by the `cygwin32.root` and `cygwin6
 
 **Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw*.root` configuration settings are to be set manually.
 
+#### MinGW selection
+
+The MSYS2 extension offers selection of the source the MinGW toolchain comes from.
+
+There are three implemented MinGW providers:
+
+- MSYS2
+
+- Cygwin
+
+- Standalone MinGW
+
+The MinGW selection logics works as follows.
+If the `mingw??.root` configuration setting is set, it is used to determine the root path to the standalone MinGW installation such as [MinGW-W64](http://mingw-w64.org) or [TDM-GCC](https://jmeubank.github.io/tdm-gcc/).
+Otherwise, the `mingw??.provider` configuration setting is used to determine the MinGW provider. There are four possible values for it: `msys2`, `cygwin32`, `cygwin64` and anything else with `msys2` taken as the default. If it is set to anything but the first three, the selector falls back to the above `mingw??.root` case.
+32 and 64-bit MinGW installations are determined separately with the respective configuration settings.
+
 #### CMake & generator configuration
 
 The CMakeTools-specific configuration is normally done per user by editing the `settings.json` file either manually or through the VS Code's UI. There are two parts which are to be configured: the CMake itself and the CMake's [generator tool](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html). While it is sufficient to set the `cmake.cmakePath` configuration setting for the CMake part, the latter is a more involved. Of all CMake-supported generators there are two useful ones: [GNU Make](https://www.gnu.org/software/make/) Makefile and [Ninja](https://ninja-build.org/) generators with the latter being strongly recommended.
@@ -87,7 +104,7 @@ To overcome this problem the MSYS2 extension's configuration relies on default g
 }
 ```
 
-This configuration is expected to work unchanged across all supported environments: native Windows (MinGW), unixized Windows (MSYS2, Cygwin) and managed Linux (WSL).
+This configuration is expected to work unchanged across all supported environments: native Windows (MinGW), unixized Windows (MSYS2, Cygwin) and managed Linux (WSL, WSL2).
 
 ##### Ninja generator configuration
 
@@ -285,7 +302,7 @@ The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are li
 
 ## Troubleshooting
 
-The MSYS2 is a very simple extension which should work well out of the box and 90% of the problems can be resolved by following two simple steps:
+The MSYS2 is a very simple extension which should work well out of the box and 90% of the problems can be resolved by making two simple steps:
 
 1. Reload the VS Code window with **`Ctrl+Shift+P` |> Developer: Reload Window**
 
