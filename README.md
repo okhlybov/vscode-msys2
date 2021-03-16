@@ -154,7 +154,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   {
     "name": "MinGW32",
     "preferredGenerator": {"name": "MinGW Makefiles"},
-    "environmentVariables": {"PATH": "${command:mingw32.bin}"},
+    "environmentVariables": {"PATH": "${command:mingw32.path}"},
     "compilers": {
       "C": "${command:mingw32.cc.exe}",
       "CXX": "${command:mingw32.cxx.exe}",
@@ -165,7 +165,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   {
     "name": "MinGW64",
     "preferredGenerator": {"name": "MinGW Makefiles"},
-    "environmentVariables": {"PATH": "${command:mingw64.bin}"},
+    "environmentVariables": {"PATH": "${command:mingw64.path}"},
     "compilers": {
       "C": "${command:mingw64.cc.exe}",
       "CXX": "${command:mingw64.cxx.exe}",
@@ -176,7 +176,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   {
     "name": "MSYS2",
     "preferredGenerator": {"name": "Unix Makefiles"},
-    "environmentVariables": {"PATH": "${command:msys2.bin}"},
+    "environmentVariables": {"PATH": "${command:msys2.path}"},
     "compilers": {
       "C": "${command:msys2.cc.exe}",
       "CXX": "${command:msys2.cxx.exe}",
@@ -187,7 +187,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   {
     "name": "Cygwin32",
     "preferredGenerator": {"name": "Unix Makefiles"},
-    "environmentVariables": {"PATH": "${command:cygwin32.bin}"},
+    "environmentVariables": {"PATH": "${command:cygwin32.path}"},
     "compilers": {
       "C": "${command:cygwin32.cc.exe}",
       "CXX": "${command:cygwin32.cxx.exe}",
@@ -198,7 +198,7 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   {
     "name": "Cygwin64",
     "preferredGenerator": {"name": "Unix Makefiles"},
-    "environmentVariables": {"PATH": "${command:cygwin64.bin}"},
+    "environmentVariables": {"PATH": "${command:cygwin64.path}"},
     "compilers": {
       "C": "${command:cygwin64.cc.exe}",
       "CXX": "${command:cygwin64.cxx.exe}",

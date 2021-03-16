@@ -25,21 +25,29 @@ function MinGWProvider(bit) {
 
 function activate(context) {
 
-	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
+	const pathSeparator = (process.platform == 'win32' ? '\;' : '\:');
+
+	const systemPath = process.env.PATH.split(/\\?;/).join('\;'); // Proper escaping of the system PATH
 
 	// BuildKit
 
 	vscode.commands.registerCommand('cmake.buildkit.bin', function () {
 		return BuildKit().then(kit => {
-			return kit ? vscode.commands.executeCommand(`${kit}.bin`) : Promise.resolve('');
+			return kit ? vscode.commands.executeCommand(`${kit}.bin`) : Promise.resolve(null);
+		});
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.path', function () {
+		return BuildKit().then(kit => {
+			return kit ? vscode.commands.executeCommand(`${kit}.path`) : Promise.resolve(null);
 		});
 	});
 
 	// System-specific value of the PATH environment variable for the launch tasks
 	vscode.commands.registerCommand('cmake.buildkit.launch.path', function () {
-		return vscode.commands.executeCommand('cmake.buildkit.bin').then(binDir => {
+		return vscode.commands.executeCommand('cmake.buildkit.path').then(path => {
 			return vscode.commands.executeCommand('cmake.getLaunchTargetDirectory').then(targetDir => {
-				return `${targetDir}${pathSeparator}${binDir}${pathSeparator}\$PATH`;
+				return `${targetDir}${pathSeparator}${path}`;
 			});
 		});
 	});
@@ -88,6 +96,12 @@ function activate(context) {
 		return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/usr/bin`;});
 	});
 
+	vscode.commands.registerCommand('msys2.path', function () {
+		return vscode.commands.executeCommand('msys2.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
+	});
+
 	vscode.commands.registerCommand('msys2.bash.exe', function () {
 		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/bash.exe`;});
 	});
@@ -130,6 +144,12 @@ function activate(context) {
 		return vscode.commands.executeCommand('cygwin32.root').then(root => {return `${root}/bin`;});
 	});
 
+	vscode.commands.registerCommand('cygwin32.path', function () {
+		return vscode.commands.executeCommand('cygwin32.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
+	});
+
 	vscode.commands.registerCommand('cygwin32.bash.exe', function () {
 		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/bash.exe`;});
 	});
@@ -170,6 +190,12 @@ function activate(context) {
 
 	vscode.commands.registerCommand('cygwin64.bin', function () {
 		return vscode.commands.executeCommand('cygwin64.root').then(root => {return `${root}/bin`;});
+	});
+
+	vscode.commands.registerCommand('cygwin64.path', function () {
+		return vscode.commands.executeCommand('cygwin64.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
 	});
 
 	vscode.commands.registerCommand('cygwin64.bash.exe', function () {
@@ -216,6 +242,12 @@ function activate(context) {
 
 	vscode.commands.registerCommand('mingw32.bin', function () {
 		return vscode.commands.executeCommand('mingw32.root').then(root => {return `${root}/bin`;});
+	});
+
+	vscode.commands.registerCommand('mingw32.path', function () {
+		return vscode.commands.executeCommand('mingw32.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw32.gdb.exe', function () {
@@ -266,6 +298,12 @@ function activate(context) {
 
 	vscode.commands.registerCommand('mingw64.bin', function () {
 		return vscode.commands.executeCommand('mingw64.root').then(root => {return `${root}/bin`;});
+	});
+
+	vscode.commands.registerCommand('mingw64.path', function () {
+		return vscode.commands.executeCommand('mingw64.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
 	});
 
 	vscode.commands.registerCommand('mingw64.gdb.exe', function () {

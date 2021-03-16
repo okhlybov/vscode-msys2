@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.7.0] 2021-3-16
+
+- Proper handling of the build kit -specific configure time PATH environment variable
+
+- CMakeTools' build kit settings template update
+
+- Documentation update
+
 ## [0.6.0] 2021-3-9
 
 - Add MinGW provider selector
@@ -38,7 +46,7 @@
 
 ## [0.2.0] 2021-2-6
 
-- Introduce a few CMakeTools' build kit -specific commands `cmake.buildkit.*.exe` to enable the use of kit-specific CMake & generator tools instead of the generic MSYS2-specific ones.
+- Introduce a few CMakeTools' build kit -specific commands `cmake.buildkit.*.exe` to enable the use of build kit -specific CMake & generator tools instead of the generic MSYS2-specific ones.
 
 - VS Code's per user settings template update
 

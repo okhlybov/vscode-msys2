@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -30,6 +30,7 @@
   "activationEvents": [
     
     "onCommand:cmake.buildkit.bin",
+    "onCommand:cmake.buildkit.path",
     "onCommand:cmake.buildkit.launch.path",
     "onCommand:cmake.buildkit.cmake.exe",
     "onCommand:cmake.buildkit.make.exe",
@@ -42,6 +43,7 @@
 
     "onCommand:msys2.root",
     "onCommand:msys2.bin",
+    "onCommand:msys2.path",
     "onCommand:msys2.bash.exe",
     "onCommand:msys2.gdb.exe",
     "onCommand:msys2.cmake.exe",
@@ -53,6 +55,7 @@
 
     "onCommand:cygwin32.root",
     "onCommand:cygwin32.bin",
+    "onCommand:cygwin32.path",
     "onCommand:cygwin32.bash.exe",
     "onCommand:cygwin32.gdb.exe",
     "onCommand:cygwin32.cmake.exe",
@@ -64,6 +67,7 @@
 
     "onCommand:cygwin64.root",
     "onCommand:cygwin64.bin",
+    "onCommand:cygwin64.path",
     "onCommand:cygwin64.bash.exe",
     "onCommand:cygwin64.gdb.exe",
     "onCommand:cygwin64.cmake.exe",
@@ -75,6 +79,7 @@
 
     "onCommand:mingw32.root",
     "onCommand:mingw32.bin",
+    "onCommand:mingw32.path",
     "onCommand:mingw32.gdb.exe",
     "onCommand:mingw32.cmake.exe",
     "onCommand:mingw32.make.exe",
@@ -85,6 +90,7 @@
 
     "onCommand:mingw64.root",
     "onCommand:mingw64.bin",
+    "onCommand:mingw64.path",
     "onCommand:mingw64.gdb.exe",
     "onCommand:mingw64.cmake.exe",
     "onCommand:mingw64.make.exe",
