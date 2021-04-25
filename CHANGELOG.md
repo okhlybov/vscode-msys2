@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.8.0]
+## [0.8.0] 2021-4-25
 
 - UCRT-based MinGW support
 

@@ -18,7 +18,7 @@ Technically the extension provides a set of commands for use with the `${command
 
 - Isolated operation where no global PATH modification is neccessary
 
-- Support for MSVCRT-based and UCRT-based MinGW toolchains
+- Support for MSVCRT-based and UCRT-based MinGW toolchains provided by MSYS2
 
 ## Setup & Configuration
 
@@ -82,6 +82,16 @@ The MinGW selection logics works as follows.
 If the `mingw??.root` configuration setting is set, it is used to determine the root path to the standalone MinGW installation such as [MinGW-W64](http://mingw-w64.org) or [TDM-GCC](https://jmeubank.github.io/tdm-gcc/).
 Otherwise, the `mingw??.provider` configuration setting is used to determine the MinGW provider. There are four possible values for it: `msys2`, `cygwin32`, `cygwin64` and anything else with `msys2` taken as the default. If it is set to anything but the first three, the selector falls back to the above `mingw??.root` case.
 32 and 64-bit MinGW installations are determined separately with the respective configuration settings.
+
+##### MinGW runtimes
+
+There are two different C runtimes supported by the MinGW: the traditional MSVCRT-based runtime and the Microsoft's new [universal C runtime](https://docs.microsoft.com/cpp/windows/universal-crt-deployment). 
+
+Modern MSYS2 provides support for both of them. Moreover, both versions do happily coexist within the MSYS2 installation inside `{msys2.root}/mingw??` and `{msys2.root}/ucrt64` directories, respectively.
+
+This MSYS2 extension allows to select particular MinGW kit for use by the CMakeTools: the MSVCRT-based builds are accessible via the **MinGW32** and **MinGW64** kits and the 64-bit UCRT-based build is accessible via the **UCRT64** kit (note that there is no 32-bit UCRT).
+
+As the UCRT-based build is bound to the MSYS2 installation there is no particular configuration for it.
 
 #### CMake & generator configuration
 
