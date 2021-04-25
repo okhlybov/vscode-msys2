@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -97,8 +97,19 @@
     "onCommand:mingw64.ninja.exe",
     "onCommand:mingw64.cc.exe",
     "onCommand:mingw64.cxx.exe",
-    "onCommand:mingw64.fc.exe"
+    "onCommand:mingw64.fc.exe",
     
+    "onCommand:ucrt64.root",
+    "onCommand:ucrt64.bin",
+    "onCommand:ucrt64.path",
+    "onCommand:ucrt64.gdb.exe",
+    "onCommand:ucrt64.cmake.exe",
+    "onCommand:ucrt64.make.exe",
+    "onCommand:ucrt64.ninja.exe",
+    "onCommand:ucrt64.cc.exe",
+    "onCommand:ucrt64.cxx.exe",
+    "onCommand:ucrt64.fc.exe"
+
   ],
   "main": "./extension.js",
   "contributes": {

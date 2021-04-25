@@ -4,6 +4,7 @@ const vscode = require('vscode');
 function BuildKit() {
 	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
 		if(/msys2?/i.test(kit)) return 'msys2';
+		else if(/ucrt\s*64/i.test(kit)) return 'ucrt64';
 		else if(/mingw\s*64/i.test(kit)) return 'mingw64';
 		else if(/mingw\s*32/i.test(kit)) return 'mingw32';
 		else if(/cygwin\s*64/i.test(kit)) return 'cygwin64';
@@ -339,6 +340,58 @@ function activate(context) {
 	vscode.commands.registerCommand('mingw64.fc.exe', function () {
 		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
 			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
+		});
+	});
+
+	// UCRT64
+
+	vscode.commands.registerCommand('ucrt64.root', function () {
+		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/ucrt64`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.bin', function () {
+		return vscode.commands.executeCommand('ucrt64.root').then(root => {return `${root}/bin`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.path', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
+	});
+
+	vscode.commands.registerCommand('ucrt64.gdb.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/gdb.exe`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.cmake.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.make.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
+			return `${bin}/mingw32-make.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('ucrt64.ninja.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/ninja.exe`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.cc.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
+			return `${bin}/gcc.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('ucrt64.cxx.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
+			return `${bin}/g++.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('ucrt64.fc.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
+			return `${bin}/gfortran.exe`;
 		});
 	});
 

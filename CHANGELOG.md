@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.8.0]
+
+- UCRT-based MinGW support
+
+- CMakeTools' build kit settings template update
+
 ## [0.7.0] 2021-3-16
 
 - Proper handling of the build kit -specific configure time PATH environment variable

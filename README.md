@@ -18,6 +18,8 @@ Technically the extension provides a set of commands for use with the `${command
 
 - Isolated operation where no global PATH modification is neccessary
 
+- Support for MSVCRT-based and UCRT-based MinGW toolchains
+
 ## Setup & Configuration
 
 This extension is primarily designed to work with the CMakeTools extension although it is possible to make use of it with any build system which utilizes the command substitution capability.
@@ -170,6 +172,17 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
       "C": "${command:mingw64.cc.exe}",
       "CXX": "${command:mingw64.cxx.exe}",
       "Fortran": "${command:mingw64.fc.exe}"
+    },
+    "keep": true
+  },
+  {
+    "name": "UCRT64",
+    "preferredGenerator": {"name": "MinGW Makefiles"},
+    "environmentVariables": {"PATH": "${command:ucrt64.path}"},
+    "compilers": {
+      "C": "${command:ucrt64.cc.exe}",
+      "CXX": "${command:ucrt64.cxx.exe}",
+      "Fortran": "${command:ucrt64.fc.exe}"
     },
     "keep": true
   },
