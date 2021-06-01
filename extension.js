@@ -7,6 +7,8 @@ function BuildKit() {
 		else if(/ucrt\s*64/i.test(kit)) return 'ucrt64';
 		else if(/mingw\s*64/i.test(kit)) return 'mingw64';
 		else if(/mingw\s*32/i.test(kit)) return 'mingw32';
+		else if(/clang\s*64/i.test(kit)) return 'clang64';
+		else if(/clang\s*32/i.test(kit)) return 'clang32';
 		else if(/cygwin\s*64/i.test(kit)) return 'cygwin64';
 		else if(/cygwin(\s*32)?/i.test(kit)) return 'cygwin32';
 		else return null;
@@ -340,6 +342,110 @@ function activate(context) {
 	vscode.commands.registerCommand('mingw64.fc.exe', function () {
 		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
 			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
+		});
+	});
+
+	// Clang32
+
+	vscode.commands.registerCommand('clang32.root', function () {
+		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/clang32`;});
+	});
+
+	vscode.commands.registerCommand('clang32.bin', function () {
+		return vscode.commands.executeCommand('clang32.root').then(root => {return `${root}/bin`;});
+	});
+
+	vscode.commands.registerCommand('clang32.path', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang32.gdb.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/gdb.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang32.cmake.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang32.make.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {
+			return `${bin}/mingw32-make.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang32.ninja.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/ninja.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang32.cc.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {
+			return `${bin}/clang.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang32.cxx.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {
+			return `${bin}/clang++.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang32.fc.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {
+			return `${bin}/flang.exe`;
+		});
+	});
+
+	// Clang64
+
+	vscode.commands.registerCommand('clang64.root', function () {
+		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/clang64`;});
+	});
+
+	vscode.commands.registerCommand('clang64.bin', function () {
+		return vscode.commands.executeCommand('clang64.root').then(root => {return `${root}/bin`;});
+	});
+
+	vscode.commands.registerCommand('clang64.path', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(binDir => {
+			return `${binDir}${pathSeparator}${systemPath}`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang64.gdb.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/gdb.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang64.cmake.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang64.make.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {
+			return `${bin}/mingw32-make.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang64.ninja.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/ninja.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang64.cc.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {
+			return `${bin}/clang.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang64.cxx.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {
+			return `${bin}/clang++.exe`;
+		});
+	});
+
+	vscode.commands.registerCommand('clang64.fc.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {
+			return `${bin}/flang.exe`;
 		});
 	});
 

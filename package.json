@@ -1,7 +1,7 @@
 {
   "name": "msys2",
-  "displayName": "MSYS2/Cygwin/MinGW support",
-  "description": "VS Code extension to set and retrieve MSYS2/Cygwin/MinGW configuration",
+  "displayName": "MSYS2/Cygwin/MinGW/Clang support",
+  "description": "VS Code extension to set and retrieve MSYS2/Cygwin/MinGW/Clang configuration",
   "publisher": "fougas",
   "author": {
     "name": "Oleg A. Khlybov"
@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -21,6 +21,7 @@
     "msys2",
     "cygwin",
     "mingw",
+    "clang",
     "win32",
     "windows"
   ],
@@ -98,6 +99,28 @@
     "onCommand:mingw64.cc.exe",
     "onCommand:mingw64.cxx.exe",
     "onCommand:mingw64.fc.exe",
+    
+    "onCommand:clang32.root",
+    "onCommand:clang32.bin",
+    "onCommand:clang32.path",
+    "onCommand:clang32.gdb.exe",
+    "onCommand:clang32.cmake.exe",
+    "onCommand:clang32.make.exe",
+    "onCommand:clang32.ninja.exe",
+    "onCommand:clang32.cc.exe",
+    "onCommand:clang32.cxx.exe",
+    "onCommand:clang32.fc.exe",
+
+    "onCommand:clang64.root",
+    "onCommand:clang64.bin",
+    "onCommand:clang64.path",
+    "onCommand:clang64.gdb.exe",
+    "onCommand:clang64.cmake.exe",
+    "onCommand:clang64.make.exe",
+    "onCommand:clang64.ninja.exe",
+    "onCommand:clang64.cc.exe",
+    "onCommand:clang64.cxx.exe",
+    "onCommand:clang64.fc.exe",
     
     "onCommand:ucrt64.root",
     "onCommand:ucrt64.bin",

@@ -197,6 +197,28 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
     "keep": true
   },
   {
+    "name": "Clang32",
+    "preferredGenerator": {"name": "MinGW Makefiles"},
+    "environmentVariables": {"PATH": "${command:clang32.path}"},
+    "compilers": {
+      "C": "${command:clang32.cc.exe}",
+      "CXX": "${command:clang32.cxx.exe}",
+      "Fortran": "${command:clang32.fc.exe}"
+    },
+    "keep": true
+  },
+  {
+    "name": "Clang64",
+    "preferredGenerator": {"name": "MinGW Makefiles"},
+    "environmentVariables": {"PATH": "${command:clang64.path}"},
+    "compilers": {
+      "C": "${command:clang64.cc.exe}",
+      "CXX": "${command:clang64.cxx.exe}",
+      "Fortran": "${command:clang64.fc.exe}"
+    },
+    "keep": true
+  },
+  {
     "name": "MSYS2",
     "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:msys2.path}"},

@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.9.0]
+
+- MSYS2's Clang support
+
+- CMakeTools' build kit settings template update
+
 ## [0.8.0] 2021-4-25
 
 - UCRT-based MinGW support
