@@ -1,6 +1,6 @@
-# MSYS2/Cygwin/MinGW support extension for Visual Studio Code 
+# MSYS2/Cygwin/MinGW/Clang support extension for Visual Studio Code 
 
-This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/) and [MinGW](http://mingw-w64.org) toolchains to the [Visual Studio Code](https://code.visualstudio.com/).
+This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/), [MinGW](http://mingw-w64.org) and [Clang](https://clang.llvm.org/) toolchains to the [Visual Studio Code](https://code.visualstudio.com/).
 
 Technically the extension provides a set of commands for use with the `${command:...}` substitution feature used throughout the VS Code and its extensions to enhance their configurability. These commands return full paths to the respective toolchain-specific executables such as the CMake itself, generators, compilers etc.
 
@@ -8,13 +8,13 @@ Technically the extension provides a set of commands for use with the `${command
 
 - [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
 
-  - 32/64 bit MSYS2/Cygwin/MinGW toolchain configurations
+  - 32/64-bit MSYS2/Cygwin/MinGW/Clang toolchain configurations
 
 - [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration
 
   - Cross-language [debugging with GDB](https://code.visualstudio.com/docs/cpp/cpp-debug)
 
-  - Code navigation with [IntelliSense](https://code.visualstudio.com/docs/editor/intellisense)
+  - Code [navigation with IntelliSense](https://code.visualstudio.com/docs/editor/intellisense)
 
 - Isolated operation where no global PATH modification is neccessary
 
@@ -54,19 +54,21 @@ Instead, it is configured manually via the per user [configuration settings](htt
 These settings can be set either via the UI or by direct editing the `settings.json` file in the form of raw JSON data.
 In either case, the settings are accessible via the **`Ctrl+,`** keyboard shortcut.
 
-#### MSYS2 & MinGW configuration
+#### MSYS2 configuration
 
-The (64-bit) MSYS2 location is specified by the `msys2.root` configuration setting in the `settings.json` file which is set to `c:\msys64` by default as it is the default location proposed by the MSYS2 installer. This specifically means that no manual configuration is required when MSYS2 is installed into default location.
-
-The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration settings. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installations.
+The (64-bit only) MSYS2 location is specified by the `msys2.root` configuration setting in the `settings.json` file which is set to `c:\msys64` by default as it is the default location proposed by the MSYS2 installer. This specifically means that no manual configuration is required when MSYS2 is installed into default location.
 
 #### Cygwin configuration
 
-The 32/64-bit Cygwin locations are specified by the `cygwin32.root` and `cygwin64.root` configuration settings in the `settings.json` file which are set to `c:\cygwin` and `c:\cygwin64` by default, respectively, as they are the default locations proposed by the Cygwin installers.
+The 32/64-bit Cygwin locations are specified by the `cygwin32.root` and `cygwin64.root` configuration settings in the `settings.json` file which are set to `c:\cygwin` and `c:\cygwin64` by default, respectively, as they are the default locations proposed by the Cygwin installers. This specifically means that no manual configuration is required when Cygwins are installed into default locations
 
-**Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw*.root` configuration settings are to be set manually.
+#### MinGW configuration
 
-#### MinGW selection
+The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration settings. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installations.
+
+**Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw??.root` configuration settings are to be set manually.
+
+##### MinGW selection
 
 The MSYS2 extension offers selection of the source the MinGW toolchain comes from.
 
@@ -81,17 +83,21 @@ There are three implemented MinGW providers:
 The MinGW selection logics works as follows.
 If the `mingw??.root` configuration setting is set, it is used to determine the root path to the standalone MinGW installation such as [MinGW-W64](http://mingw-w64.org) or [TDM-GCC](https://jmeubank.github.io/tdm-gcc/).
 Otherwise, the `mingw??.provider` configuration setting is used to determine the MinGW provider. There are four possible values for it: `msys2`, `cygwin32`, `cygwin64` and anything else with `msys2` taken as the default. If it is set to anything but the first three, the selector falls back to the above `mingw??.root` case.
-32 and 64-bit MinGW installations are determined separately with the respective configuration settings.
+32/64-bit MinGW installations are determined separately with the respective configuration settings.
 
 ##### MinGW runtimes
 
-There are two different C runtimes supported by the MinGW: the traditional MSVCRT-based runtime and the Microsoft's new [universal C runtime](https://docs.microsoft.com/cpp/windows/universal-crt-deployment). 
+There are currently two different C runtimes supported by the MinGW: the traditional MSVCRT-based runtime and the Microsoft's new [universal C runtime](https://docs.microsoft.com/cpp/windows/universal-crt-deployment). 
 
 Modern MSYS2 provides support for both of them. Moreover, both versions do happily coexist within the MSYS2 installation inside `{msys2.root}/mingw??` and `{msys2.root}/ucrt64` directories, respectively.
 
 This MSYS2 extension allows to select particular MinGW kit for use by the CMakeTools: the MSVCRT-based builds are accessible via the **MinGW32** and **MinGW64** kits and the 64-bit UCRT-based build is accessible via the **UCRT64** kit (note that there is no 32-bit UCRT).
 
 As the UCRT-based build is bound to the MSYS2 installation there is no particular configuration for it.
+
+#### Clang configuration
+
+The MSYS2 extension provides support for the MSYS2-based 32/64-bit Clang toolchains in the same way as for the UCRT. As such, there is no configuration needed aside from installing the Clang toolchain itself which is expected to reside in the `{msys2.root}/clang??` directories. After that, the Clang toolchains are accessible via the **Clang32** and **Clang64** kits within the CMakeTools.
 
 #### CMake & generator configuration
 
@@ -358,3 +364,5 @@ The MSYS2 is a very simple extension which should work well out of the box and 9
 [0.1.0] The integrated terminal `terminal.integrated.shell.windows` setting so far does not actually perform command substitution effectively precluding the use of the package-provided `msys2.bash.exe` command to obtain the actual path to Bash executable.
 
 [0.2.0] When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.
+
+[0.9.0] The extension's Clang configuration provides support for the FORTRAN language but the MSYS2 project is yet to roll out the Flang compiler.

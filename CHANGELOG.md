@@ -1,10 +1,12 @@
 # Change Log
 
-## [0.9.0]
+## [0.9.0] 2021-6-17
 
 - MSYS2's Clang support
 
 - CMakeTools' build kit settings template update
+
+- Documentation update
 
 ## [0.8.0] 2021-4-25
 
