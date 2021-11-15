@@ -1,15 +1,14 @@
 # MSYS2/Cygwin/MinGW/Clang support extension for Visual Studio Code 
 
-This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/), [MinGW](http://mingw-w64.org) and [Clang](https://clang.llvm.org/) toolchains to the [Visual Studio Code](https://code.visualstudio.com/).
+This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/), [MinGW](http://mingw-w64.org) and [Clang](https://clang.llvm.org/) toolchains to the [Visual Studio Code](https://code.visualstudio.com/) and its OSS  builds like [VSCodium](https://vscodium.com/).
 
 Technically the extension provides a set of commands for use with the `${command:...}` substitution feature used throughout the VS Code and its extensions to enhance their configurability. These commands return full paths to the respective toolchain-specific executables such as the CMake itself, generators, compilers etc.
 
 ## Features
 
 - [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
-
   - 32/64-bit MSYS2/Cygwin/MinGW/Clang toolchain configurations
-
+  
 - [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration
 
   - Cross-language [debugging with GDB](https://code.visualstudio.com/docs/cpp/cpp-debug)
@@ -45,6 +44,20 @@ twxs.cmake krvajalm.linter-gfortran
 ```
 
 which provide the CMake and Fortran file syntax highlighting, respectively.
+
+### Per user VSCodium extensions
+
+Unfortunately there are not all extensions available from alternative [OpenVSX](https://open-vsx.org/) extension repository used by OSS builds of Visual Studio Code such as VSCoduim. This specifically means no out-of-the-box launch/debugging support. The avaliable extensions are installed as follows:
+
+The following extensions are to be installed
+
+```
+ms-vscode.cmake-tools twxs.cmake fougas.msys2
+```
+
+by opening the [Visual Studio Code extensions](https://code.visualstudio.com/docs/editor/extension-gallery) panel with the **`Ctrl+Shift+X`** keyboard shortcut and pasting the above line into the entry, then installing each of highlighted extensions individually.
+
+### 
 
 ### Per user Visual Studio Code configuration
 
@@ -264,6 +277,8 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
 
 #### CppTools integration
 
+***Note*** that the CppTools extension is currently available at [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) only meaning no out-of-the-box support for alternative VS Code builds such as VSCodium.
+
 ##### Launch & debug configuration
 
 In order to configure the per project configuration in `.vscode/launch.json` file which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P` |> Open launch.json** and paste the configuration below
@@ -366,3 +381,5 @@ The MSYS2 is a very simple extension which should work well out of the box and 9
 [0.2.0] When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.
 
 [0.9.0] The extension's Clang configuration provides support for the FORTRAN language but the MSYS2 project is yet to roll out the Flang compiler.
+
+[0.9.1] No out-of-the-box CppTools integration for VSCodium & friends. Some optional extensions are also missing.

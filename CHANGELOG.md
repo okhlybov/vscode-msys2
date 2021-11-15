@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.9.1] 2021-11-15
+
+- Documentation update
+
+- Extension availability on OpenVSX
+
 ## [0.9.0] 2021-6-17
 
 - MSYS2's Clang support
