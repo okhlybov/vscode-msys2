@@ -57,8 +57,6 @@ ms-vscode.cmake-tools twxs.cmake fougas.msys2
 
 by opening the [Visual Studio Code extensions](https://code.visualstudio.com/docs/editor/extension-gallery) panel with the **`Ctrl+Shift+X`** keyboard shortcut and pasting the above line into the entry, then installing each of highlighted extensions individually.
 
-### 
-
 ### Per user Visual Studio Code configuration
 
 Currently the MSYS2 extension provides no means of auto-detecting the supported toolchain locations.
