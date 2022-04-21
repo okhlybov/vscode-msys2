@@ -65,6 +65,10 @@ function activate(context) {
 		return BuildKitExe('cmake');
 	});
 
+	vscode.commands.registerCommand('cmake.buildkit.meson.exe', function () {
+		return BuildKitExe('meson');
+	});
+
 	vscode.commands.registerCommand('cmake.buildkit.ninja.exe', function () {
 		return BuildKitExe('ninja');
 	});
@@ -117,6 +121,10 @@ function activate(context) {
 		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
+	vscode.commands.registerCommand('msys2.meson.exe', function () {
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/meson.exe`;});
+	});
+
 	vscode.commands.registerCommand('msys2.make.exe', function () {
 		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/make.exe`;});
 	});
@@ -163,6 +171,10 @@ function activate(context) {
 
 	vscode.commands.registerCommand('cygwin32.cmake.exe', function () {
 		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('cygwin32.meson.exe', function () {
+		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/meson.exe`;});
 	});
 
 	vscode.commands.registerCommand('cygwin32.make.exe', function () {
@@ -213,6 +225,10 @@ function activate(context) {
 		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
+	vscode.commands.registerCommand('cygwin64.meson.exe', function () {
+		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/meson.exe`;});
+	});
+
 	vscode.commands.registerCommand('cygwin64.make.exe', function () {
 		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/make.exe`;});
 	});
@@ -259,6 +275,10 @@ function activate(context) {
 
 	vscode.commands.registerCommand('mingw32.cmake.exe', function () {
 		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('mingw32.meson.exe', function () {
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/meson.exe`;});
 	});
 
 	vscode.commands.registerCommand('mingw32.make.exe', function () {
@@ -317,6 +337,10 @@ function activate(context) {
 		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
+	vscode.commands.registerCommand('mingw64.meson.exe', function () {
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/meson.exe`;});
+	});
+
 	vscode.commands.registerCommand('mingw64.make.exe', function () {
 		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
 			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/make.exe` : `${bin}/mingw32-make.exe`;
@@ -367,6 +391,10 @@ function activate(context) {
 
 	vscode.commands.registerCommand('clang32.cmake.exe', function () {
 		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang32.meson.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/meson.exe`;});
 	});
 
 	vscode.commands.registerCommand('clang32.make.exe', function () {
@@ -421,6 +449,10 @@ function activate(context) {
 		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/cmake.exe`;});
 	});
 
+	vscode.commands.registerCommand('clang64.meson.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/meson.exe`;});
+	});
+
 	vscode.commands.registerCommand('clang64.make.exe', function () {
 		return vscode.commands.executeCommand('clang64.bin').then(bin => {
 			return `${bin}/mingw32-make.exe`;
@@ -471,6 +503,10 @@ function activate(context) {
 
 	vscode.commands.registerCommand('ucrt64.cmake.exe', function () {
 		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/cmake.exe`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.meson.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/meson.exe`;});
 	});
 
 	vscode.commands.registerCommand('ucrt64.make.exe', function () {

@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.10.0]
+
+- Meson support
+
 ## [0.9.1] 2021-11-15
 
 - Documentation update
