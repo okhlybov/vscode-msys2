@@ -166,7 +166,7 @@
         "mingw32.provider": {
           "type": "string",
           "default": "msys2",
-          "description": "32-bit MinGW location provider [msys2, cygwin32, cygwin64] if {mingw32.root} if not set explicitly"
+          "description": "32-bit MinGW location provider [msys2, cygwin32, cygwin64] if {mingw32.root} is not set explicitly"
         },
         "mingw32.root": {
           "type": "string",
@@ -176,7 +176,7 @@
         "mingw64.provider": {
           "type": "string",
           "default": "msys2",
-          "description": "64-bit MinGW location provider [msys2, cygwin32, cygwin64] if {mingw64.root} if not set explicitly"
+          "description": "64-bit MinGW location provider [msys2, cygwin32, cygwin64] if {mingw64.root} is not set explicitly"
         },
         "mingw64.root": {
           "type": "string",
