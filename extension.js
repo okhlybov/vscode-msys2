@@ -82,18 +82,30 @@ function activate(context) {
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.cc.exe', function () {
-		return BuildKitExe('cc', 'gcc');
+		return BuildKitExe('cc');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.cxx.exe', function () {
-		return BuildKitExe('cxx', 'g++');
+		return BuildKitExe('cxx');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.fc.exe', function () {
-		return BuildKitExe('fc', 'gfortran');
+		return BuildKitExe('fc');
 	});
 
-	// MSYS2
+	vscode.commands.registerCommand('cmake.buildkit.mpicc.exe', function () {
+		return BuildKitExe('mpicc');
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.mpicxx.exe', function () {
+		return BuildKitExe('mpicxx');
+	});
+
+	vscode.commands.registerCommand('cmake.buildkit.mpifort.exe', function () {
+		return BuildKitExe('mpifort');
+	});
+
+  // MSYS2
 
 	vscode.commands.registerCommand('msys2.root', function () {
 		return vscode.workspace.getConfiguration().get('msys2.root').replace('\\', '/');
@@ -145,7 +157,19 @@ function activate(context) {
 		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gfortran.exe`;});
 	});
 
-	// Cygwin32
+	vscode.commands.registerCommand('msys2.mpicc.exe', function () {
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/mpicc.exe`;});
+	});
+
+	vscode.commands.registerCommand('msys2.mpicxx.exe', function () {
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/mpicxx.exe`;});
+	});
+
+	vscode.commands.registerCommand('msys2.mpifort.exe', function () {
+		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/mpifort.exe`;});
+	});
+
+  // Cygwin32
 
 	vscode.commands.registerCommand('cygwin32.root', function () {
 		return vscode.workspace.getConfiguration().get('cygwin32.root').replace('\\', '/');
@@ -309,6 +333,18 @@ function activate(context) {
 		});
 	});
 
+	vscode.commands.registerCommand('mingw32.mpicc.exe', function () {
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mpicc.exe`;});
+	});
+
+	vscode.commands.registerCommand('mingw32.mpicxx.exe', function () {
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mpicxx.exe`;});
+	});
+
+	vscode.commands.registerCommand('mingw32.mpifort.exe', function () {
+		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mpifort.exe`;});
+	});
+
 	// MinGW64
 
 	vscode.commands.registerCommand('mingw64.root', function () {
@@ -368,6 +404,18 @@ function activate(context) {
 			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
 		});
 	});
+	
+  vscode.commands.registerCommand('mingw64.mpicc.exe', function () {
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mpicc.exe`;});
+	});
+
+	vscode.commands.registerCommand('mingw64.mpicxx.exe', function () {
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mpicxx.exe`;});
+	});
+
+	vscode.commands.registerCommand('mingw64.mpifort.exe', function () {
+		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mpifort.exe`;});
+	});
 
 	// Clang32
 
@@ -425,7 +473,19 @@ function activate(context) {
 		});
 	});
 
-	// Clang64
+  vscode.commands.registerCommand('clang32.mpicc.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/mpicc.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang32.mpicxx.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/mpicxx.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang32.mpifort.exe', function () {
+		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/mpifort.exe`;});
+	});
+
+  // Clang64
 
 	vscode.commands.registerCommand('clang64.root', function () {
 		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/clang64`;});
@@ -481,7 +541,19 @@ function activate(context) {
 		});
 	});
 
-	// UCRT64
+  vscode.commands.registerCommand('clang64.mpicc.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/mpicc.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang64.mpicxx.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/mpicxx.exe`;});
+	});
+
+	vscode.commands.registerCommand('clang64.mpifort.exe', function () {
+		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/mpifort.exe`;});
+	});
+
+  // UCRT64
 
 	vscode.commands.registerCommand('ucrt64.root', function () {
 		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/ucrt64`;});
@@ -537,6 +609,20 @@ function activate(context) {
 		});
 	});
 
+  vscode.commands.registerCommand('ucrt64.mpicc.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/mpicc.exe`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.mpicxx.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/mpicxx.exe`;});
+	});
+
+	vscode.commands.registerCommand('ucrt64.mpifort.exe', function () {
+		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/mpifort.exe`;});
+	});
+
+  //
+  
 	console.log('MSYS2 extension activated');
 
 }
