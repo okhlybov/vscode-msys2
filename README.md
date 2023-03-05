@@ -1,4 +1,4 @@
-# MSYS2/Cygwin/MinGW/Clang support extension for Visual Studio Code 
+# MSYS2/Cygwin/MinGW/Clang support extension for Visual Studio Code
 
 This extension brings in configuration and usage of the [MSYS2](https://www.msys2.org/), [Cygwin](https://cygwin.com/), [MinGW](http://mingw-w64.org) and [Clang](https://clang.llvm.org/) toolchains to the [Visual Studio Code](https://code.visualstudio.com/) and its OSS  builds like [VSCodium](https://vscodium.com/).
 
@@ -7,12 +7,13 @@ Technically the extension provides a set of commands for use with the `${command
 ## Features
 
 - [CMakeTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) integration
-  - 32/64-bit MSYS2/Cygwin/MinGW/Clang toolchain configurations
   
+  - 32/64-bit MSYS2/Cygwin/MinGW/Clang toolchain configurations
+
 - [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) integration
-
+  
   - Cross-language [debugging with GDB](https://code.visualstudio.com/docs/cpp/cpp-debug)
-
+  
   - Code [navigation with IntelliSense](https://code.visualstudio.com/docs/editor/intellisense)
 
 - Isolated operation where no global PATH modification is neccessary
@@ -139,7 +140,6 @@ This configuration is expected to work unchanged across all supported environmen
 
 The Ninja generator configuration is an extension to the Makefile generator's with the explicit `cmake.generator` setting being the only addition:
 
-
 ```json
 {
   "cmake.generator": "Ninja",
@@ -176,7 +176,7 @@ Anyway, the switching between Ninja and Multi-Config Ninja is as simple as chang
 
 #### CMakeTools integration
 
-In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
+In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
 [
@@ -184,6 +184,11 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
     "name": "MinGW32",
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:mingw32.path}"},
+    "cmakeSettings": {
+      "MPI_C_COMPILER": "${command:mingw32.mpicc.exe}",
+      "MPI_CXX_COMPILER": "${command:mingw32.mpicxx.exe}",
+      "MPI_Fortran_COMPILER": "${command:mingw32.mpifort.exe}"
+    },
     "compilers": {
       "C": "${command:mingw32.cc.exe}",
       "CXX": "${command:mingw32.cxx.exe}",
@@ -195,6 +200,11 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
     "name": "MinGW64",
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:mingw64.path}"},
+    "cmakeSettings": {
+      "MPI_C_COMPILER": "${command:mingw64.mpicc.exe}",
+      "MPI_CXX_COMPILER": "${command:mingw64.mpicxx.exe}",
+      "MPI_Fortran_COMPILER": "${command:mingw64.mpifort.exe}"
+    },
     "compilers": {
       "C": "${command:mingw64.cc.exe}",
       "CXX": "${command:mingw64.cxx.exe}",
@@ -206,6 +216,11 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
     "name": "UCRT64",
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:ucrt64.path}"},
+    "cmakeSettings": {
+      "MPI_C_COMPILER": "${command:ucrt64.mpicc.exe}",
+      "MPI_CXX_COMPILER": "${command:ucrt64.mpicxx.exe}",
+      "MPI_Fortran_COMPILER": "${command:ucrt64.mpifort.exe}"
+    },
     "compilers": {
       "C": "${command:ucrt64.cc.exe}",
       "CXX": "${command:ucrt64.cxx.exe}",
@@ -217,6 +232,11 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
     "name": "Clang32",
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:clang32.path}"},
+    "cmakeSettings": {
+      "MPI_C_COMPILER": "${command:clang32.mpicc.exe}",
+      "MPI_CXX_COMPILER": "${command:clang32.mpicxx.exe}",
+      "MPI_Fortran_COMPILER": "${command:clang32.mpifort.exe}"
+    },
     "compilers": {
       "C": "${command:clang32.cc.exe}",
       "CXX": "${command:clang32.cxx.exe}",
@@ -227,6 +247,11 @@ In order to configure per user MSYS2-specific CMakeTools [Kits](https://github.c
   {
     "name": "Clang64",
     "preferredGenerator": {"name": "MinGW Makefiles"},
+    "cmakeSettings": {
+      "MPI_C_COMPILER": "${command:clang64.mpicc.exe}",
+      "MPI_CXX_COMPILER": "${command:clang64.mpicxx.exe}",
+      "MPI_Fortran_COMPILER": "${command:clang64.mpifort.exe}"
+    },
     "environmentVariables": {"PATH": "${command:clang64.path}"},
     "compilers": {
       "C": "${command:clang64.cc.exe}",
@@ -285,7 +310,7 @@ In order to configure the per project configuration in `.vscode/launch.json` fil
 {
     "version": "0.2.0",
     "configurations": [
-        
+
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
@@ -363,6 +388,22 @@ In order to enable the IntelliSense support which provides the code navigation c
 This configuration is set up to work with the CMakeTools extension which provides the toolchain in effect. 
 
 The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are likely to be tailoerd to meet the specific needs, though the default values can be used as a starting point.
+
+## MPI support
+
+Staring with version `0.10.0` the extension has built-in support for MPI detection & compilation for relevant toolchains.
+Currently the only supported MPI provider is [Microsoft MPI](https://learn.microsoft.com/en-us/message-passing-interface/microsoft-mpi) (aka MS-MPI).
+
+While Cygwin has [OpenMPI](https://www.open-mpi.org/) support it's not (yet) covered by this extension.
+
+As a result, the only MPI-capable toolchains so far are MinGW*, UCRT* and Clang*.
+
+__Note that the MS-MPI is fully supported by the Visual Studio & Windows-native CMake which allows for MPI code compilation from within Visual Studio Code as well.__
+
+In order to compile & run MPI codes both runtime and SDK packages are required to be installed. The runtime package which can be obtained from the aforementioned location is required by all relevant toolchains (Visual Studio included). As for SDK, Visual Studio consumes the official SDK package which is obtaned along with the runtime. On the contrary, the MSYS2-based toolchains require toolchain-specific `msmpi` packages which should be installed manually with Pacman.
+
+__Please note that the CMakeTools configuration above is extended to accomodate new functionality.
+As a consequence, per user CMake Kits confuguration must be revised.__
 
 ## Troubleshooting
 

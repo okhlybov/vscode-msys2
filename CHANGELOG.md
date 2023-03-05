@@ -2,7 +2,11 @@
 
 ## [0.10.0]
 
-- Meson support
+- Basic Meson support
+
+- MPI support
+
+- Documentation update
 
 ## [0.9.1] 2021-11-15
 

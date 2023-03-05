@@ -33,6 +33,7 @@
     "onCommand:cmake.buildkit.bin",
     "onCommand:cmake.buildkit.path",
     "onCommand:cmake.buildkit.launch.path",
+    "onCommand:cmake.buildkit.generator.exe",
     "onCommand:cmake.buildkit.cmake.exe",
     "onCommand:cmake.buildkit.meson.exe",
     "onCommand:cmake.buildkit.make.exe",
@@ -41,7 +42,9 @@
     "onCommand:cmake.buildkit.cc.exe",
     "onCommand:cmake.buildkit.cxx.exe",
     "onCommand:cmake.buildkit.fc.exe",
-    "onCommand:cmake.buildkit.generator.exe",
+    "onCommand:cmake.buildkit.mpicc.exe",
+    "onCommand:cmake.buildkit.mpicxx.exe",
+    "onCommand:cmake.buildkit.mpifort.exe",
 
     "onCommand:msys2.root",
     "onCommand:msys2.bin",
@@ -93,6 +96,9 @@
     "onCommand:mingw32.cc.exe",
     "onCommand:mingw32.cxx.exe",
     "onCommand:mingw32.fc.exe",
+    "onCommand:mingw32.mpicc.exe",
+    "onCommand:mingw32.mpicxx.exe",
+    "onCommand:mingw32.mpifort.exe",
 
     "onCommand:mingw64.root",
     "onCommand:mingw64.bin",
@@ -105,6 +111,9 @@
     "onCommand:mingw64.cc.exe",
     "onCommand:mingw64.cxx.exe",
     "onCommand:mingw64.fc.exe",
+    "onCommand:mingw64.mpicc.exe",
+    "onCommand:mingw64.mpicxx.exe",
+    "onCommand:mingw64.mpifort.exe",
     
     "onCommand:clang32.root",
     "onCommand:clang32.bin",
@@ -117,6 +126,9 @@
     "onCommand:clang32.cc.exe",
     "onCommand:clang32.cxx.exe",
     "onCommand:clang32.fc.exe",
+    "onCommand:clang32.mpicc.exe",
+    "onCommand:clang32.mpicxx.exe",
+    "onCommand:clang32.mpifort.exe",
 
     "onCommand:clang64.root",
     "onCommand:clang64.bin",
@@ -129,6 +141,9 @@
     "onCommand:clang64.cc.exe",
     "onCommand:clang64.cxx.exe",
     "onCommand:clang64.fc.exe",
+    "onCommand:clang64.mpicc.exe",
+    "onCommand:clang64.mpicxx.exe",
+    "onCommand:clang64.mpifort.exe",
     
     "onCommand:ucrt64.root",
     "onCommand:ucrt64.bin",
@@ -140,7 +155,10 @@
     "onCommand:ucrt64.ninja.exe",
     "onCommand:ucrt64.cc.exe",
     "onCommand:ucrt64.cxx.exe",
-    "onCommand:ucrt64.fc.exe"
+    "onCommand:ucrt64.fc.exe",
+    "onCommand:ucrt64.mpicc.exe",
+    "onCommand:ucrt64.mpicxx.exe",
+    "onCommand:ucrt64.mpifort.exe"
 
   ],
   "main": "./extension.js",
