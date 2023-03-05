@@ -403,7 +403,7 @@ __Note that the MS-MPI is fully supported by the Visual Studio & Windows-native 
 In order to compile & run MPI codes both runtime and SDK packages are required to be installed. The runtime package which can be obtained from the aforementioned location is required by all relevant toolchains (Visual Studio included). As for SDK, Visual Studio consumes the official SDK package which is obtaned along with the runtime. On the contrary, the MSYS2-based toolchains require toolchain-specific `msmpi` packages which should be installed manually with Pacman.
 
 __Please note that the CMakeTools configuration above is extended to accomodate new functionality.
-As a consequence, per user CMake Kits confuguration must be revised.__
+As a consequence, the per user CMake Kits configuration must be revised.__
 
 ## Troubleshooting
 
