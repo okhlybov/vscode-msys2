@@ -185,14 +185,12 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:mingw32.path}"},
     "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:mingw32.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:mingw32.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:mingw32.fc.exe}",
       "MPI_C_COMPILER": "${command:mingw32.mpicc.exe}",
       "MPI_CXX_COMPILER": "${command:mingw32.mpicxx.exe}",
       "MPI_Fortran_COMPILER": "${command:mingw32.mpifort.exe}"
-    },
-    "compilers": {
-      "C": "${command:mingw32.cc.exe}",
-      "CXX": "${command:mingw32.cxx.exe}",
-      "Fortran": "${command:mingw32.fc.exe}"
     },
     "keep": true
   },
@@ -201,14 +199,12 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:mingw64.path}"},
     "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:mingw64.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:mingw64.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:mingw64.fc.exe}",
       "MPI_C_COMPILER": "${command:mingw64.mpicc.exe}",
       "MPI_CXX_COMPILER": "${command:mingw64.mpicxx.exe}",
       "MPI_Fortran_COMPILER": "${command:mingw64.mpifort.exe}"
-    },
-    "compilers": {
-      "C": "${command:mingw64.cc.exe}",
-      "CXX": "${command:mingw64.cxx.exe}",
-      "Fortran": "${command:mingw64.fc.exe}"
     },
     "keep": true
   },
@@ -217,14 +213,12 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:ucrt64.path}"},
     "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:ucrt64.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:ucrt64.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:ucrt64.fc.exe}",
       "MPI_C_COMPILER": "${command:ucrt64.mpicc.exe}",
       "MPI_CXX_COMPILER": "${command:ucrt64.mpicxx.exe}",
       "MPI_Fortran_COMPILER": "${command:ucrt64.mpifort.exe}"
-    },
-    "compilers": {
-      "C": "${command:ucrt64.cc.exe}",
-      "CXX": "${command:ucrt64.cxx.exe}",
-      "Fortran": "${command:ucrt64.fc.exe}"
     },
     "keep": true
   },
@@ -233,30 +227,26 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "preferredGenerator": {"name": "MinGW Makefiles"},
     "environmentVariables": {"PATH": "${command:clang32.path}"},
     "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:clang32.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:clang32.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:clang32.fc.exe}",
       "MPI_C_COMPILER": "${command:clang32.mpicc.exe}",
       "MPI_CXX_COMPILER": "${command:clang32.mpicxx.exe}",
       "MPI_Fortran_COMPILER": "${command:clang32.mpifort.exe}"
-    },
-    "compilers": {
-      "C": "${command:clang32.cc.exe}",
-      "CXX": "${command:clang32.cxx.exe}",
-      "Fortran": "${command:clang32.fc.exe}"
     },
     "keep": true
   },
   {
     "name": "Clang64",
     "preferredGenerator": {"name": "MinGW Makefiles"},
+    "environmentVariables": {"PATH": "${command:clang64.path}"},
     "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:clang64.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:clang64.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:clang64.fc.exe}",
       "MPI_C_COMPILER": "${command:clang64.mpicc.exe}",
       "MPI_CXX_COMPILER": "${command:clang64.mpicxx.exe}",
       "MPI_Fortran_COMPILER": "${command:clang64.mpifort.exe}"
-    },
-    "environmentVariables": {"PATH": "${command:clang64.path}"},
-    "compilers": {
-      "C": "${command:clang64.cc.exe}",
-      "CXX": "${command:clang64.cxx.exe}",
-      "Fortran": "${command:clang64.fc.exe}"
     },
     "keep": true
   },
@@ -264,10 +254,10 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "name": "MSYS2",
     "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:msys2.path}"},
-    "compilers": {
-      "C": "${command:msys2.cc.exe}",
-      "CXX": "${command:msys2.cxx.exe}",
-      "Fortran": "${command:msys2.fc.exe}"
+    "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:msys2.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:msys2.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:msys2.fc.exe}",
     },
     "keep": true
   },
@@ -275,10 +265,10 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "name": "Cygwin32",
     "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:cygwin32.path}"},
-    "compilers": {
-      "C": "${command:cygwin32.cc.exe}",
-      "CXX": "${command:cygwin32.cxx.exe}",
-      "Fortran": "${command:cygwin32.fc.exe}"
+    "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:cygwin32.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:cygwin32.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:cygwin32.fc.exe}",
     },
     "keep": true
   },
@@ -286,10 +276,10 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "name": "Cygwin64",
     "preferredGenerator": {"name": "Unix Makefiles"},
     "environmentVariables": {"PATH": "${command:cygwin64.path}"},
-    "compilers": {
-      "C": "${command:cygwin64.cc.exe}",
-      "CXX": "${command:cygwin64.cxx.exe}",
-      "Fortran": "${command:cygwin64.fc.exe}"
+    "cmakeSettings": {
+      "CMAKE_C_COMPILER": "${command:cygwin64.cc.exe}",
+      "CMAKE_CXX_COMPILER": "${command:cygwin64.cxx.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:cygwin64.fc.exe}",
     },
     "keep": true
   }

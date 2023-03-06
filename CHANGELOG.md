@@ -2,11 +2,13 @@
 
 ## [0.10.0]
 
-- Basic Meson support
-
 - MPI support
 
 - Documentation update
+
+- Fix clobbering package-handled CMake Kits for MinGW* by the CMakeTools scanner (_existing CMake Kits json configuration fix is required_)
+
+- Rudimentary Meson support
 
 ## [0.9.1] 2021-11-15
 
