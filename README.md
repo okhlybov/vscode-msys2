@@ -176,7 +176,7 @@ Anyway, the switching between Ninja and Multi-Config Ninja is as simple as chang
 
 #### CMakeTools integration
 
-In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://github.com/microsoft/vscode-cmake-tools/blob/develop/docs/kits.md), issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
+In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/kits.md), issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
 [
