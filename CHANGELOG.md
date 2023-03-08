@@ -1,12 +1,12 @@
 # Change Log
 
-## [0.10.0]
+## [0.10.0] 2023-03-08
 
 - MPI support
 
 - Documentation update
 
-- Fix clobbering package-handled CMake Kits for MinGW* by the CMakeTools scanner (_existing CMake Kits json configuration fix is required_)
+- Fix clobbering package-handled CMake Kits for MinGW* by the CMakeTools scanner (_existing CMake Kits JSON configuration fix is required_)
 
 - Rudimentary Meson support
 

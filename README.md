@@ -24,7 +24,7 @@ Technically the extension provides a set of commands for use with the `${command
 
 This extension is primarily designed to work with the CMakeTools extension although it is possible to make use of it with any build system which utilizes the command substitution capability.
 
-The following steps are to be performed in order to configure a minimal usable MSYS2, Cygwin MinGW and Visual Studio Code environments.
+The following steps are to be performed in order to configure a minimal usable MSYS2, Cygwin, MinGW/Clang and Visual Studio Code environments.
 
 **Hint** the VS Code canonic `Ctrl+Shift+P` command palette shortcut extensively used below has a very convenient `F1` alias.
 
@@ -405,10 +405,12 @@ The MSYS2 is a very simple extension which should work well out of the box and 9
 
 ## Known issues & caveats
 
-[0.1.0] The integrated terminal `terminal.integrated.shell.windows` setting so far does not actually perform command substitution effectively precluding the use of the package-provided `msys2.bash.exe` command to obtain the actual path to Bash executable.
+[0.10.0] It was noted that the CMakeTools toolchain scanner clobbers existing entries handled by MSYS2 extension. To overcome this issue the CMake Kits JSON configuration has been updated.
 
-[0.2.0] When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.
+[0.9.1] No out-of-the-box CppTools integration for VSCodium & friends. Some optional extensions are also missing.
 
 [0.9.0] The extension's Clang configuration provides support for the FORTRAN language but the MSYS2 project is yet to roll out the Flang compiler.
 
-[0.9.1] No out-of-the-box CppTools integration for VSCodium & friends. Some optional extensions are also missing.
+[0.2.0] When switching between the CMakeTools build kits within a single work session, the CMake `cmake.cmakePath` property is not re-evaluated even in spite of the requested command interpolation (`${command:cmake.buildkit.cmake.exe}`, for example). As a result, a previous kit's value will be reused. In order to synchronize its value, a session restart is required. On the contrary, a generator tool specified by the `cmake.configureSettings` property gets updated correctly.
+
+[0.1.0] The integrated terminal `terminal.integrated.shell.windows` setting so far does not actually perform command substitution effectively precluding the use of the package-provided `msys2.bash.exe` command to obtain the actual path to Bash executable.
