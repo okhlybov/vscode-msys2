@@ -8,3 +8,6 @@ vsc-extension-quickstart.md
 **/*.map
 **/.eslintrc.json
 *.cmd
+*.code-workspace
+*.vsix
+*.tgz

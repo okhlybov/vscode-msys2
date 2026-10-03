@@ -11,7 +11,7 @@
     "url": "https://github.com/okhlybov/vscode-msys2.git"
   },
   "homepage": "https://github.com/okhlybov/vscode-msys2",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -209,7 +209,8 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "test": "node ./test/runTest.js"
+    "test": "node ./test/runTest.js",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/glob": "^7.1.3",

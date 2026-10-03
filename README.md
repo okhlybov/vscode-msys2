@@ -286,7 +286,7 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
 ]
 ```
 
-**Note** that the above configuration command is only available when the CMakeTools extension is active, e.g. when a CMake project is open.
+**Note** that the above configuration command is only available when the CMakeTools extension is active, e.g. when a CMake project is open. Also, there is `cmake.useCMakePresets` option what might interfere with the availability of this knob: a project can be in either kits or presets mode, where the kits controls are absent.
 
 #### CppTools integration
 
