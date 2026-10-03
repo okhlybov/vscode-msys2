@@ -1,16 +1,21 @@
 const vscode = require('vscode');
 
+function normalizePath(p) {
+	return p ? p.replace(/\\/g, '/') : '';
+}
+
 // Return canonic name of buildkit in effect or null if it is unrecognized
 function BuildKit() {
 	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
-		if(/msys2?/i.test(kit)) return 'msys2';
-		else if(/ucrt\s*64/i.test(kit)) return 'ucrt64';
-		else if(/mingw\s*64/i.test(kit)) return 'mingw64';
-		else if(/mingw\s*32/i.test(kit)) return 'mingw32';
+		if(!kit) return null;
+		if(/ucrt\s*64/i.test(kit)) return 'ucrt64';
 		else if(/clang\s*64/i.test(kit)) return 'clang64';
 		else if(/clang\s*32/i.test(kit)) return 'clang32';
+		else if(/mingw\s*64/i.test(kit)) return 'mingw64';
+		else if(/mingw\s*32/i.test(kit)) return 'mingw32';
 		else if(/cygwin\s*64/i.test(kit)) return 'cygwin64';
 		else if(/cygwin(\s*32)?/i.test(kit)) return 'cygwin32';
+		else if(/msys2?/i.test(kit)) return 'msys2';
 		else return null;
 	});
 };
@@ -28,9 +33,10 @@ function MinGWProvider(bit) {
 
 function activate(context) {
 
-	const pathSeparator = (process.platform == 'win32' ? '\;' : '\:');
+	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
 
-	const systemPath = process.env.PATH.split(/\\?;/).join('\;'); // Proper escaping of the system PATH
+	const rawPath = process.env.PATH || process.env.Path || '';
+	const systemPath = rawPath.split(/\\?;/).join(pathSeparator); // Proper escaping of the system PATH
 
 	// BuildKit
 
@@ -108,7 +114,7 @@ function activate(context) {
   // MSYS2
 
 	vscode.commands.registerCommand('msys2.root', function () {
-		return vscode.workspace.getConfiguration().get('msys2.root').replace('\\', '/');
+		return normalizePath(vscode.workspace.getConfiguration().get('msys2.root'));
 	});
 
 	vscode.commands.registerCommand('msys2.bin', function () {
@@ -172,7 +178,7 @@ function activate(context) {
   // Cygwin32
 
 	vscode.commands.registerCommand('cygwin32.root', function () {
-		return vscode.workspace.getConfiguration().get('cygwin32.root').replace('\\', '/');
+		return normalizePath(vscode.workspace.getConfiguration().get('cygwin32.root'));
 	});
 
 	vscode.commands.registerCommand('cygwin32.bin', function () {
@@ -224,7 +230,7 @@ function activate(context) {
 	// Cygwin64
 
 	vscode.commands.registerCommand('cygwin64.root', function () {
-		return vscode.workspace.getConfiguration().get('cygwin64.root').replace('\\', '/');
+		return normalizePath(vscode.workspace.getConfiguration().get('cygwin64.root'));
 	});
 
 	vscode.commands.registerCommand('cygwin64.bin', function () {
@@ -276,10 +282,11 @@ function activate(context) {
 	// MinGW32
 
 	vscode.commands.registerCommand('mingw32.root', function () {
-		switch(prov = MinGWProvider(32)) {
+		const prov = MinGWProvider(32);
+		switch(prov) {
 			case 'msys2': return vscode.commands.executeCommand(`${prov}.root`).then(root => {return `${root}/mingw32`;});
 			case 'cygwin32': case 'cygwin64': return vscode.commands.executeCommand(`${prov}.root`);
-			default: return vscode.workspace.getConfiguration().get(`mingw32.root`).replace('\\', '/');
+			default: return normalizePath(vscode.workspace.getConfiguration().get('mingw32.root'));
 		}
 	});
 
@@ -348,10 +355,11 @@ function activate(context) {
 	// MinGW64
 
 	vscode.commands.registerCommand('mingw64.root', function () {
-		switch(prov = MinGWProvider(64)) {
+		const prov = MinGWProvider(64);
+		switch(prov) {
 			case 'msys2': return vscode.commands.executeCommand(`${prov}.root`).then(root => {return `${root}/mingw64`;});
 			case 'cygwin32': case 'cygwin64': return vscode.commands.executeCommand(`${prov}.root`);
-			default: return vscode.workspace.getConfiguration().get(`mingw64.root`).replace('\\', '/');
+			default: return normalizePath(vscode.workspace.getConfiguration().get('mingw64.root'));
 		}
 	});
 

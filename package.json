@@ -58,6 +58,9 @@
     "onCommand:msys2.cc.exe",
     "onCommand:msys2.cxx.exe",
     "onCommand:msys2.fc.exe",
+    "onCommand:msys2.mpicc.exe",
+    "onCommand:msys2.mpicxx.exe",
+    "onCommand:msys2.mpifort.exe",
 
     "onCommand:cygwin32.root",
     "onCommand:cygwin32.bin",
@@ -203,6 +206,10 @@
         }
       }
     }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "node ./test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^7.1.3",

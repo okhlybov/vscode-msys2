@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.10.1]
+
+- Bug fixes
+
 ## [0.10.0] 2023-03-08
 
 - MPI support
