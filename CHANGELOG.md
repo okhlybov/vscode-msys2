@@ -4,6 +4,18 @@
 
 - VS Code required version bump to 1.74.0
 
+- Code deduplication: table-driven toolchain registry
+
+- Fixed launch PATH degradation without a recognized build kit
+
+- Unrecognized CMake generator and MinGW provider fall back to sane defaults
+
+- Cygwin build kits no longer fail on MPI tools
+
+- Regression test suite
+
+- Documentation fixes
+
 ## [0.10.1] 2026-10-03
 
 - Bug fixes

@@ -53,7 +53,9 @@ function loadExtension() {
 	};
 	try {
 		delete require.cache[require.resolve('../extension.js')];
-		require('../extension.js').activate();
+		const subscriptions = [];
+		require('../extension.js').activate({subscriptions});
+		mock.subscriptions = subscriptions;
 	} finally {
 		Module.prototype.require = originalRequire;
 	}
@@ -74,6 +76,8 @@ const set = overrides => {
 
 test('registers the complete command set', () => {
 	assert.equal(mock.registered.size, 124);
+	// Every command disposable is deferred to the extension subscriptions
+	assert.equal(mock.subscriptions.length, mock.registered.size);
 	for(const env of ['msys2', 'cygwin32', 'cygwin64', 'mingw32', 'mingw64', 'clang32', 'clang64', 'ucrt64']) {
 		for(const cmd of ['root', 'bin', 'path', 'gdb.exe', 'cmake.exe', 'meson.exe', 'make.exe', 'ninja.exe', 'cc.exe', 'cxx.exe', 'fc.exe']) {
 			assert.ok(mock.registered.has(`${env}.${cmd}`), `${env}.${cmd}`);
@@ -123,11 +127,10 @@ test('Explicit mingw root selects the standalone toolchain', async () => {
 	assert.equal(await run('mingw32.make.exe'), 'D:/TDM-GCC32/bin/mingw32-make.exe');
 });
 
-test('Unknown MinGW provider falls back to the unset mingw root', async () => {
+test('Unknown MinGW provider falls back to the default MSYS2 one', async () => {
 	set({'mingw32.provider': 'bogus'});
-	// Known wart, pinned: the unset root yields an empty string
-	assert.equal(await run('mingw32.root'), '');
-	assert.equal(await run('mingw32.cc.exe'), '/bin/gcc.exe');
+	assert.equal(await run('mingw32.root'), 'c:/msys64/mingw32');
+	assert.equal(await run('mingw32.cc.exe'), 'c:/msys64/mingw32/bin/gcc.exe');
 });
 
 test('buildkit commands delegate to the environment of the active kit', async () => {
@@ -150,14 +153,15 @@ test('buildkit commands degrade gracefully without a recognized kit', async () =
 	assert.equal(await run('cmake.buildkit.bin'), null);
 	mock.kitName = 'Some Alien Kit';
 	assert.equal(await run('cmake.buildkit.cc.exe'), 'cc');
-	// Known wart, pinned: the unrecognized kit makes launch.path interpolate null
-	assert.equal(await run('cmake.buildkit.launch.path'), `T:/target${pathSeparator}null`);
+	// Without a recognized kit, the launch PATH degrades to the target directory plus the system PATH
+	assert.equal(await run('cmake.buildkit.launch.path'), `T:/target${pathSeparator}${systemPath}`);
 });
 
 test('Cygwin kits expose no MPI tools', async () => {
 	set({});
 	mock.kitName = 'Cygwin64';
-	await assert.rejects(run('cmake.buildkit.mpicc.exe'));
+	// No MS-MPI under Cygwin: degrade to the bare driver name like an unrecognized kit does
+	assert.equal(await run('cmake.buildkit.mpicc.exe'), 'mpicc');
 });
 
 test('generator selection follows cmake.generator', async () => {
@@ -167,8 +171,8 @@ test('generator selection follows cmake.generator', async () => {
 	set({'cmake.generator': 'Ninja Multi-Config'});
 	mock.kitName = 'UCRT64';
 	assert.equal(await run('cmake.buildkit.generator.exe'), 'c:/msys64/ucrt64/bin/ninja.exe');
-	// Known wart, pinned: an unrecognized generator yields undefined
+	// An unrecognized generator falls back to the default make tool
 	set({'cmake.generator': 'Visual Studio 17 2022'});
 	mock.kitName = 'UCRT64';
-	assert.equal(await run('cmake.buildkit.generator.exe'), undefined);
+	assert.equal(await run('cmake.buildkit.generator.exe'), 'c:/msys64/ucrt64/bin/mingw32-make.exe');
 });

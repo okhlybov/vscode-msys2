@@ -26,9 +26,11 @@ function BuildKit() {
 }
 
 // Return executable path for the buildkit in effect
+// Falls back to the bare executable name if the buildkit is unrecognized or its environment provides no such tool, e.g. MPI under Cygwin
 function BuildKitExe(exe, fallback = null) {
+	const bare = fallback ? fallback : exe;
 	return BuildKit().then(kit => {
-		return kit ? vscode.commands.executeCommand(`${kit}.${exe}.exe`) : (fallback ? fallback : exe);
+		return (kit && exe in environments[kit].tools) ? vscode.commands.executeCommand(`${kit}.${exe}.exe`) : bare;
 	});
 }
 
@@ -44,11 +46,12 @@ function mingwExe(bit, cygwinName, nativeName) {
 
 // Return root directory of the MinGW toolchain: the explicit mingw??.root if set, otherwise the one implied by the provider
 function mingwRoot(bit) {
-	const prov = MinGWProvider(bit);
+	const explicit = normalizePath(vscode.workspace.getConfiguration().get(`mingw${bit}.root`));
+	if(explicit) return explicit;
+	const prov = vscode.workspace.getConfiguration().get(`mingw${bit}.provider`);
 	switch(prov) {
-		case 'msys2': return `${rootOf('msys2')}/mingw${bit}`;
 		case 'cygwin32': case 'cygwin64': return rootOf(prov);
-		default: return normalizePath(vscode.workspace.getConfiguration().get(`mingw${bit}.root`));
+		default: return `${rootOf('msys2')}/mingw${bit}`; // msys2 being the default provider, this also covers unrecognized values
 	}
 }
 
@@ -147,22 +150,27 @@ const environments = {
 // Tools retrievable for the buildkit in effect
 const buildkitTools = ['cmake', 'meson', 'ninja', 'make', 'gdb', 'cc', 'cxx', 'fc', 'mpicc', 'mpicxx', 'mpifort'];
 
+// Register a command deferring its disposable to the extension lifetime subscriptions
+function registerCommand(subscriptions, name, handler) {
+	subscriptions.push(vscode.commands.registerCommand(name, handler));
+}
+
 // Register the root, bin, path and tool executable retrievers of a single toolchain environment
-function registerEnvironment(name, env, pathSeparator, systemPath) {
-	vscode.commands.registerCommand(`${name}.root`, function () {
+function registerEnvironment(subscriptions, name, env, pathSeparator, systemPath) {
+	registerCommand(subscriptions, `${name}.root`, function () {
 		return env.root();
 	});
 
-	vscode.commands.registerCommand(`${name}.bin`, function () {
+	registerCommand(subscriptions, `${name}.bin`, function () {
 		return `${env.root()}/${env.bin}`;
 	});
 
-	vscode.commands.registerCommand(`${name}.path`, function () {
+	registerCommand(subscriptions, `${name}.path`, function () {
 		return `${env.root()}/${env.bin}${pathSeparator}${systemPath}`;
 	});
 
 	for(const [tool, exe] of Object.entries(env.tools)) {
-		vscode.commands.registerCommand(`${name}.${tool}.exe`, function () {
+		registerCommand(subscriptions, `${name}.${tool}.exe`, function () {
 			const bin = `${env.root()}/${env.bin}`;
 			return typeof exe == 'function' ? exe(bin) : `${bin}/${exe}`;
 		});
@@ -170,54 +178,54 @@ function registerEnvironment(name, env, pathSeparator, systemPath) {
 }
 
 // Register the buildkit-generic retrievers delegating to the environment-specific ones
-function registerBuildKitCommands(pathSeparator) {
+function registerBuildKitCommands(subscriptions, pathSeparator, systemPath) {
 
 	// Return buildkit-specific value or null if the buildkit is unrecognized
 	const kitValue = suffix => BuildKit().then(kit => {
 		return kit ? vscode.commands.executeCommand(`${kit}.${suffix}`) : null;
 	});
 
-	vscode.commands.registerCommand('cmake.buildkit.bin', function () {
+	registerCommand(subscriptions, 'cmake.buildkit.bin', function () {
 		return kitValue('bin');
 	});
 
-	vscode.commands.registerCommand('cmake.buildkit.path', function () {
+	registerCommand(subscriptions, 'cmake.buildkit.path', function () {
 		return kitValue('path');
 	});
 
 	// System-specific value of the PATH environment variable for the launch tasks
-	vscode.commands.registerCommand('cmake.buildkit.launch.path', function () {
+	registerCommand(subscriptions, 'cmake.buildkit.launch.path', function () {
 		return vscode.commands.executeCommand('cmake.buildkit.path').then(path => {
 			return vscode.commands.executeCommand('cmake.getLaunchTargetDirectory').then(targetDir => {
-				return `${targetDir}${pathSeparator}${path}`;
+				return `${targetDir}${pathSeparator}${path || systemPath}`; // without a recognized buildkit, degrade to the plain system PATH
 			});
 		});
 	});
 
-	vscode.commands.registerCommand('cmake.buildkit.generator.exe', function () {
+	registerCommand(subscriptions, 'cmake.buildkit.generator.exe', function () {
 		const gtor = vscode.workspace.getConfiguration().get('cmake.generator');
-		if(gtor == undefined || /.*Makefiles/.test(gtor)) return BuildKitExe('make'); // TODO more elaborate make tool selection taking the build kit name into account
-		else if(/Ninja.*/.test(gtor)) return BuildKitExe('ninja');
+		if(/Ninja.*/.test(gtor)) return BuildKitExe('ninja');
+		return BuildKitExe('make'); // the Makefiles generators as well as unset and unrecognized ones; TODO more elaborate make tool selection taking the build kit name into account
 	});
 
 	for(const tool of buildkitTools) {
-		vscode.commands.registerCommand(`cmake.buildkit.${tool}.exe`, function () {
+		registerCommand(subscriptions, `cmake.buildkit.${tool}.exe`, function () {
 			return BuildKitExe(tool);
 		});
 	}
 }
 
-function activate(_context) {
+function activate(context) {
 
 	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
 
 	const rawPath = process.env.PATH || process.env.Path || '';
 	const systemPath = rawPath.split(/\\?;/).join(pathSeparator); // Proper escaping of the system PATH
 
-	registerBuildKitCommands(pathSeparator);
+	registerBuildKitCommands(context.subscriptions, pathSeparator, systemPath);
 
 	for(const [name, env] of Object.entries(environments)) {
-		registerEnvironment(name, env, pathSeparator, systemPath);
+		registerEnvironment(context.subscriptions, name, env, pathSeparator, systemPath);
 	}
 
 	console.log('MSYS2 extension activated');

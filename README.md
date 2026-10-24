@@ -16,7 +16,7 @@ Technically the extension provides a set of commands for use with the `${command
   
   - Code [navigation with IntelliSense](https://code.visualstudio.com/docs/editor/intellisense)
 
-- Isolated operation where no global PATH modification is neccessary
+- Isolated operation where no global PATH modification is necessary
 
 - Support for MSVCRT-based and UCRT-based MinGW toolchains provided by MSYS2
 
@@ -48,7 +48,7 @@ which provide the CMake and Fortran file syntax highlighting, respectively.
 
 ### Per user VSCodium extensions
 
-Unfortunately there are not all extensions available from alternative [OpenVSX](https://open-vsx.org/) extension repository used by OSS builds of Visual Studio Code such as VSCoduim. This specifically means no out-of-the-box launch/debugging support. The avaliable extensions are installed as follows:
+Unfortunately there are not all extensions available from alternative [OpenVSX](https://open-vsx.org/) extension repository used by OSS builds of Visual Studio Code such as VSCodium. This specifically means no out-of-the-box launch/debugging support. The available extensions are installed as follows:
 
 The following extensions are to be installed
 
@@ -72,11 +72,11 @@ The (64-bit only) MSYS2 location is specified by the `msys2.root` configuration 
 
 #### Cygwin configuration
 
-The 32/64-bit Cygwin locations are specified by the `cygwin32.root` and `cygwin64.root` configuration settings in the `settings.json` file which are set to `c:\cygwin` and `c:\cygwin64` by default, respectively, as they are the default locations proposed by the Cygwin installers. This specifically means that no manual configuration is required when Cygwins are installed into default locations
+The 32/64-bit Cygwin locations are specified by the `cygwin32.root` and `cygwin64.root` configuration settings in the `settings.json` file which are set to `c:\cygwin` and `c:\cygwin64` by default, respectively, as they are the default locations proposed by the Cygwin installers. This specifically means that no manual configuration is required when Cygwins are installed into default locations.
 
 #### MinGW configuration
 
-The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration settings. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to coupe with them in order to use the MSYS2-provided MinGW installations.
+The 32/64-bit MinGW locations are specified by the respective `mingw32.root` and `mingw64.root` configuration settings. If not set, their values will be computed according to the `msys2.root` value, hence there is no need to cope with them in order to use the MSYS2-provided MinGW installations.
 
 **Note** that in order to use the Cygwin-provided MinGW toolchains the `mingw??.root` configuration settings are to be set manually.
 
@@ -94,7 +94,7 @@ There are three implemented MinGW providers:
 
 The MinGW selection logics works as follows.
 If the `mingw??.root` configuration setting is set, it is used to determine the root path to the standalone MinGW installation such as [MinGW-W64](http://mingw-w64.org) or [TDM-GCC](https://jmeubank.github.io/tdm-gcc/).
-Otherwise, the `mingw??.provider` configuration setting is used to determine the MinGW provider. There are four possible values for it: `msys2`, `cygwin32`, `cygwin64` and anything else with `msys2` taken as the default. If it is set to anything but the first three, the selector falls back to the above `mingw??.root` case.
+Otherwise, the `mingw??.provider` configuration setting is used to determine the MinGW provider. There are four possible values for it: `msys2`, `cygwin32`, `cygwin64` and anything else with `msys2` taken as the default. If it is set to anything but the first three, the selector falls back to the above `mingw??.root` case which itself defaults to the MSYS2-provided toolchain when it is not set.
 32/64-bit MinGW installations are determined separately with the respective configuration settings.
 
 ##### MinGW runtimes
@@ -257,7 +257,7 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "cmakeSettings": {
       "CMAKE_C_COMPILER": "${command:msys2.cc.exe}",
       "CMAKE_CXX_COMPILER": "${command:msys2.cxx.exe}",
-      "CMAKE_Fortran_COMPILER": "${command:msys2.fc.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:msys2.fc.exe}"
     },
     "keep": true
   },
@@ -268,7 +268,7 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "cmakeSettings": {
       "CMAKE_C_COMPILER": "${command:cygwin32.cc.exe}",
       "CMAKE_CXX_COMPILER": "${command:cygwin32.cxx.exe}",
-      "CMAKE_Fortran_COMPILER": "${command:cygwin32.fc.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:cygwin32.fc.exe}"
     },
     "keep": true
   },
@@ -279,7 +279,7 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
     "cmakeSettings": {
       "CMAKE_C_COMPILER": "${command:cygwin64.cc.exe}",
       "CMAKE_CXX_COMPILER": "${command:cygwin64.cxx.exe}",
-      "CMAKE_Fortran_COMPILER": "${command:cygwin64.fc.exe}",
+      "CMAKE_Fortran_COMPILER": "${command:cygwin64.fc.exe}"
     },
     "keep": true
   }
@@ -294,7 +294,7 @@ In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://g
 
 ##### Launch & debug configuration
 
-In order to configure the per project configuration in `.vscode/launch.json` file which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging funcionality, issue the command **`Ctrl+Shift+P` |> Open launch.json** and paste the configuration below
+In order to configure the per project configuration in `.vscode/launch.json` file which plays nicely with the [CppTools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) debugging functionality, issue the command **`Ctrl+Shift+P` |> Open launch.json** and paste the configuration below
 
 ```json
 {
@@ -381,7 +381,7 @@ The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are li
 
 ## MPI support
 
-Staring with version `0.10.0` the extension has built-in support for MPI detection & compilation for relevant toolchains.
+Starting with version `0.10.0` the extension has built-in support for MPI detection & compilation for relevant toolchains.
 Currently the only supported MPI provider is [Microsoft MPI](https://learn.microsoft.com/en-us/message-passing-interface/microsoft-mpi) (aka MS-MPI).
 
 While Cygwin has [OpenMPI](https://www.open-mpi.org/) support it's not (yet) covered by this extension.
@@ -390,7 +390,7 @@ As a result, the only MPI-capable toolchains so far are MinGW*, UCRT* and Clang*
 
 __Note that the MS-MPI is fully supported by the Visual Studio & Windows-native CMake which allows for MPI code compilation from within Visual Studio Code as well.__
 
-In order to compile & run MPI codes both runtime and SDK packages are required to be installed. The runtime package which can be obtained from the aforementioned location is required by all relevant toolchains (Visual Studio included). As for SDK, Visual Studio consumes the official SDK package which is obtaned along with the runtime. On the contrary, the MSYS2-based toolchains require toolchain-specific `msmpi` packages which should be installed manually with Pacman.
+In order to compile & run MPI codes both runtime and SDK packages are required to be installed. The runtime package which can be obtained from the aforementioned location is required by all relevant toolchains (Visual Studio included). As for SDK, Visual Studio consumes the official SDK package which is obtained along with the runtime. On the contrary, the MSYS2-based toolchains require toolchain-specific `msmpi` packages which should be installed manually with Pacman.
 
 __Please note that the CMakeTools configuration above is extended to accomodate new functionality.
 As a consequence, the per user CMake Kits configuration must be revised.__
@@ -401,7 +401,7 @@ The MSYS2 is a very simple extension which should work well out of the box and 9
 
 1. Reload the VS Code window with **`Ctrl+Shift+P` |> Developer: Reload Window**
 
-2. Reconfigure the CMake project with with **`Ctrl+Shift+P` |> CMake: Delete Cache and Reconfigure**
+2. Reconfigure the CMake project with **`Ctrl+Shift+P` |> CMake: Delete Cache and Reconfigure**
 
 ## Known issues & caveats
 
