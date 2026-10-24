@@ -4,52 +4,185 @@ function normalizePath(p) {
 	return p ? p.replace(/\\/g, '/') : '';
 }
 
+// Kit name matchers in the order of precedence; the first matching one identifies the toolchain environment in effect
+const kitMatchers = [
+	[/ucrt\s*64/i, 'ucrt64'],
+	[/clang\s*64/i, 'clang64'],
+	[/clang\s*32/i, 'clang32'],
+	[/mingw\s*64/i, 'mingw64'],
+	[/mingw\s*32/i, 'mingw32'],
+	[/cygwin\s*64/i, 'cygwin64'],
+	[/cygwin(\s*32)?/i, 'cygwin32'],
+	[/msys2?/i, 'msys2']
+];
+
 // Return canonic name of buildkit in effect or null if it is unrecognized
 function BuildKit() {
 	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
 		if(!kit) return null;
-		if(/ucrt\s*64/i.test(kit)) return 'ucrt64';
-		else if(/clang\s*64/i.test(kit)) return 'clang64';
-		else if(/clang\s*32/i.test(kit)) return 'clang32';
-		else if(/mingw\s*64/i.test(kit)) return 'mingw64';
-		else if(/mingw\s*32/i.test(kit)) return 'mingw32';
-		else if(/cygwin\s*64/i.test(kit)) return 'cygwin64';
-		else if(/cygwin(\s*32)?/i.test(kit)) return 'cygwin32';
-		else if(/msys2?/i.test(kit)) return 'msys2';
-		else return null;
+		const match = kitMatchers.find(([pattern]) => pattern.test(kit));
+		return match ? match[1] : null;
 	});
-};
+}
 
 // Return executable path for the buildkit in effect
 function BuildKitExe(exe, fallback = null) {
 	return BuildKit().then(kit => {
-		return kit ? vscode.commands.executeCommand(`${kit}.${exe}.exe`) : Promise.resolve(fallback ? fallback : exe);
+		return kit ? vscode.commands.executeCommand(`${kit}.${exe}.exe`) : (fallback ? fallback : exe);
 	});
 }
 
+// Return MinGW location provider or null if the mingw??.root is set explicitly
 function MinGWProvider(bit) {
 	return vscode.workspace.getConfiguration().get(`mingw${bit}.root`) ? null : vscode.workspace.getConfiguration().get(`mingw${bit}.provider`);
 }
 
-function activate(context) {
+// Return executable name of a MinGW tool depending on whether the toolchain is hosted by Cygwin
+function mingwExe(bit, cygwinName, nativeName) {
+	return /cygwin.*/i.test(MinGWProvider(bit)) ? cygwinName : nativeName;
+}
 
-	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
+// Return root directory of the MinGW toolchain: the explicit mingw??.root if set, otherwise the one implied by the provider
+function mingwRoot(bit) {
+	const prov = MinGWProvider(bit);
+	switch(prov) {
+		case 'msys2': return `${rootOf('msys2')}/mingw${bit}`;
+		case 'cygwin32': case 'cygwin64': return rootOf(prov);
+		default: return normalizePath(vscode.workspace.getConfiguration().get(`mingw${bit}.root`));
+	}
+}
 
-	const rawPath = process.env.PATH || process.env.Path || '';
-	const systemPath = rawPath.split(/\\?;/).join(pathSeparator); // Proper escaping of the system PATH
+// Return root directory of a toolchain environment as its {name}.root command does
+function rootOf(name) {
+	return environments[name].root();
+}
 
-	// BuildKit
+// Executable names of the tools shared by all the toolchain environments
+const commonTools = {
+	gdb: 'gdb.exe',
+	cmake: 'cmake.exe',
+	meson: 'meson.exe'
+};
+
+// Executable names of the GNU compiler suite
+const gnuTools = {
+	make: 'make.exe',
+	ninja: 'ninja.exe',
+	cc: 'gcc.exe',
+	cxx: 'g++.exe',
+	fc: 'gfortran.exe'
+};
+
+// Executable names of the MPI compiler drivers
+const mpiTools = {
+	mpicc: 'mpicc.exe',
+	mpicxx: 'mpicxx.exe',
+	mpifort: 'mpifort.exe'
+};
+
+// Cygwin-hosted toolchain environment with its own GNU compiler suite and no MPI support
+function cygwinEnv(bit) {
+	return {
+		bin: 'bin',
+		root: () => normalizePath(vscode.workspace.getConfiguration().get(`cygwin${bit}.root`)),
+		tools: { bash: 'bash.exe', ...commonTools, ...gnuTools }
+	};
+}
+
+// MinGW toolchain environment: provided by MSYS2 by default or by Cygwin with cross-prefixed tools, or a standalone one
+function mingwEnv(bit) {
+	const prefix = `${bit == 32 ? 'i686' : 'x86_64'}-w64-mingw32`;
+	return {
+		bin: 'bin',
+		root: () => mingwRoot(bit),
+		tools: {
+			...commonTools,
+			...gnuTools,
+			...mpiTools,
+			make: bin => `${bin}/${mingwExe(bit, 'make.exe', 'mingw32-make.exe')}`,
+			cc: bin => `${bin}/${mingwExe(bit, `${prefix}-gcc.exe`, 'gcc.exe')}`,
+			cxx: bin => `${bin}/${mingwExe(bit, `${prefix}-g++.exe`, 'g++.exe')}`,
+			fc: bin => `${bin}/${mingwExe(bit, `${prefix}-gfortran.exe`, 'gfortran.exe')}`
+		}
+	};
+}
+
+// MSYS2-hosted Clang toolchain environment
+function clangEnv(dir) {
+	return {
+		bin: 'bin',
+		root: () => `${rootOf('msys2')}/clang${dir}`,
+		tools: {
+			...commonTools,
+			...gnuTools,
+			...mpiTools,
+			make: 'mingw32-make.exe',
+			cc: 'clang.exe',
+			cxx: 'clang++.exe',
+			fc: 'flang.exe'
+		}
+	};
+}
+
+// Toolchain environments; a tool entry is either an executable name within the bin directory or a function of it
+const environments = {
+	msys2: {
+		bin: 'usr/bin',
+		root: () => normalizePath(vscode.workspace.getConfiguration().get('msys2.root')),
+		tools: { bash: 'bash.exe', ...commonTools, ...gnuTools, ...mpiTools }
+	},
+	cygwin32: cygwinEnv(32),
+	cygwin64: cygwinEnv(64),
+	mingw32: mingwEnv(32),
+	mingw64: mingwEnv(64),
+	clang32: clangEnv(32),
+	clang64: clangEnv(64),
+	ucrt64: {
+		bin: 'bin',
+		root: () => `${rootOf('msys2')}/ucrt64`,
+		tools: { ...commonTools, ...gnuTools, ...mpiTools, make: 'mingw32-make.exe' }
+	}
+};
+
+// Tools retrievable for the buildkit in effect
+const buildkitTools = ['cmake', 'meson', 'ninja', 'make', 'gdb', 'cc', 'cxx', 'fc', 'mpicc', 'mpicxx', 'mpifort'];
+
+// Register the root, bin, path and tool executable retrievers of a single toolchain environment
+function registerEnvironment(name, env, pathSeparator, systemPath) {
+	vscode.commands.registerCommand(`${name}.root`, function () {
+		return env.root();
+	});
+
+	vscode.commands.registerCommand(`${name}.bin`, function () {
+		return `${env.root()}/${env.bin}`;
+	});
+
+	vscode.commands.registerCommand(`${name}.path`, function () {
+		return `${env.root()}/${env.bin}${pathSeparator}${systemPath}`;
+	});
+
+	for(const [tool, exe] of Object.entries(env.tools)) {
+		vscode.commands.registerCommand(`${name}.${tool}.exe`, function () {
+			const bin = `${env.root()}/${env.bin}`;
+			return typeof exe == 'function' ? exe(bin) : `${bin}/${exe}`;
+		});
+	}
+}
+
+// Register the buildkit-generic retrievers delegating to the environment-specific ones
+function registerBuildKitCommands(pathSeparator) {
+
+	// Return buildkit-specific value or null if the buildkit is unrecognized
+	const kitValue = suffix => BuildKit().then(kit => {
+		return kit ? vscode.commands.executeCommand(`${kit}.${suffix}`) : null;
+	});
 
 	vscode.commands.registerCommand('cmake.buildkit.bin', function () {
-		return BuildKit().then(kit => {
-			return kit ? vscode.commands.executeCommand(`${kit}.bin`) : Promise.resolve(null);
-		});
+		return kitValue('bin');
 	});
 
 	vscode.commands.registerCommand('cmake.buildkit.path', function () {
-		return BuildKit().then(kit => {
-			return kit ? vscode.commands.executeCommand(`${kit}.path`) : Promise.resolve(null);
-		});
+		return kitValue('path');
 	});
 
 	// System-specific value of the PATH environment variable for the launch tasks
@@ -67,570 +200,26 @@ function activate(context) {
 		else if(/Ninja.*/.test(gtor)) return BuildKitExe('ninja');
 	});
 
-	vscode.commands.registerCommand('cmake.buildkit.cmake.exe', function () {
-		return BuildKitExe('cmake');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.meson.exe', function () {
-		return BuildKitExe('meson');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.ninja.exe', function () {
-		return BuildKitExe('ninja');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.make.exe', function () {
-		return BuildKitExe('make');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.gdb.exe', function () {
-		return BuildKitExe('gdb');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.cc.exe', function () {
-		return BuildKitExe('cc');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.cxx.exe', function () {
-		return BuildKitExe('cxx');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.fc.exe', function () {
-		return BuildKitExe('fc');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.mpicc.exe', function () {
-		return BuildKitExe('mpicc');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.mpicxx.exe', function () {
-		return BuildKitExe('mpicxx');
-	});
-
-	vscode.commands.registerCommand('cmake.buildkit.mpifort.exe', function () {
-		return BuildKitExe('mpifort');
-	});
-
-  // MSYS2
-
-	vscode.commands.registerCommand('msys2.root', function () {
-		return normalizePath(vscode.workspace.getConfiguration().get('msys2.root'));
-	});
-
-	vscode.commands.registerCommand('msys2.bin', function () {
-		return vscode.commands.executeCommand('msys2.root').then(root => {return `${root}/usr/bin`;});
-	});
-
-	vscode.commands.registerCommand('msys2.path', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
+	for(const tool of buildkitTools) {
+		vscode.commands.registerCommand(`cmake.buildkit.${tool}.exe`, function () {
+			return BuildKitExe(tool);
 		});
-	});
+	}
+}
 
-	vscode.commands.registerCommand('msys2.bash.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/bash.exe`;});
-	});
+function activate(context) {
 
-	vscode.commands.registerCommand('msys2.gdb.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
+	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
 
-	vscode.commands.registerCommand('msys2.cmake.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
+	const rawPath = process.env.PATH || process.env.Path || '';
+	const systemPath = rawPath.split(/\\?;/).join(pathSeparator); // Proper escaping of the system PATH
 
-	vscode.commands.registerCommand('msys2.meson.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
+	registerBuildKitCommands(pathSeparator);
 
-	vscode.commands.registerCommand('msys2.make.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/make.exe`;});
-	});
+	for(const [name, env] of Object.entries(environments)) {
+		registerEnvironment(name, env, pathSeparator, systemPath);
+	}
 
-	vscode.commands.registerCommand('msys2.ninja.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('msys2.cc.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gcc.exe`;});
-	});
-
-	vscode.commands.registerCommand('msys2.cxx.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/g++.exe`;});
-	});
-
-	vscode.commands.registerCommand('msys2.fc.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/gfortran.exe`;});
-	});
-
-	vscode.commands.registerCommand('msys2.mpicc.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/mpicc.exe`;});
-	});
-
-	vscode.commands.registerCommand('msys2.mpicxx.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/mpicxx.exe`;});
-	});
-
-	vscode.commands.registerCommand('msys2.mpifort.exe', function () {
-		return vscode.commands.executeCommand('msys2.bin').then(bin => {return `${bin}/mpifort.exe`;});
-	});
-
-  // Cygwin32
-
-	vscode.commands.registerCommand('cygwin32.root', function () {
-		return normalizePath(vscode.workspace.getConfiguration().get('cygwin32.root'));
-	});
-
-	vscode.commands.registerCommand('cygwin32.bin', function () {
-		return vscode.commands.executeCommand('cygwin32.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.path', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('cygwin32.bash.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/bash.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.gdb.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.cmake.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.meson.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.make.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/make.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.ninja.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.cc.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/gcc.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.cxx.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/g++.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin32.fc.exe', function () {
-		return vscode.commands.executeCommand('cygwin32.bin').then(bin => {return `${bin}/gfortran.exe`;});
-	});
-
-	// Cygwin64
-
-	vscode.commands.registerCommand('cygwin64.root', function () {
-		return normalizePath(vscode.workspace.getConfiguration().get('cygwin64.root'));
-	});
-
-	vscode.commands.registerCommand('cygwin64.bin', function () {
-		return vscode.commands.executeCommand('cygwin64.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.path', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('cygwin64.bash.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/bash.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.gdb.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.cmake.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.meson.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.make.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/make.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.ninja.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.cc.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/gcc.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.cxx.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/g++.exe`;});
-	});
-
-	vscode.commands.registerCommand('cygwin64.fc.exe', function () {
-		return vscode.commands.executeCommand('cygwin64.bin').then(bin => {return `${bin}/gfortran.exe`;});
-	});
-
-	// MinGW32
-
-	vscode.commands.registerCommand('mingw32.root', function () {
-		const prov = MinGWProvider(32);
-		switch(prov) {
-			case 'msys2': return vscode.commands.executeCommand(`${prov}.root`).then(root => {return `${root}/mingw32`;});
-			case 'cygwin32': case 'cygwin64': return vscode.commands.executeCommand(`${prov}.root`);
-			default: return normalizePath(vscode.workspace.getConfiguration().get('mingw32.root'));
-		}
-	});
-
-	vscode.commands.registerCommand('mingw32.bin', function () {
-		return vscode.commands.executeCommand('mingw32.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.path', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw32.gdb.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.cmake.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.meson.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.make.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/make.exe` : `${bin}/mingw32-make.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw32.ninja.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.cc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/i686-w64-mingw32-gcc.exe` : `${bin}/gcc.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw32.cxx.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/i686-w64-mingw32-g++.exe` : `${bin}/g++.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw32.fc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(32)) ? `${bin}/i686-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw32.mpicc.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mpicc.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.mpicxx.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mpicxx.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw32.mpifort.exe', function () {
-		return vscode.commands.executeCommand('mingw32.bin').then(bin => {return `${bin}/mpifort.exe`;});
-	});
-
-	// MinGW64
-
-	vscode.commands.registerCommand('mingw64.root', function () {
-		const prov = MinGWProvider(64);
-		switch(prov) {
-			case 'msys2': return vscode.commands.executeCommand(`${prov}.root`).then(root => {return `${root}/mingw64`;});
-			case 'cygwin32': case 'cygwin64': return vscode.commands.executeCommand(`${prov}.root`);
-			default: return normalizePath(vscode.workspace.getConfiguration().get('mingw64.root'));
-		}
-	});
-
-	vscode.commands.registerCommand('mingw64.bin', function () {
-		return vscode.commands.executeCommand('mingw64.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.path', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw64.gdb.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.cmake.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.meson.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.make.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/make.exe` : `${bin}/mingw32-make.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw64.ninja.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.cc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gcc.exe` : `${bin}/gcc.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw64.cxx.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-g++.exe` : `${bin}/g++.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('mingw64.fc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {
-			return /cygwin.*/i.test(MinGWProvider(64)) ? `${bin}/x86_64-w64-mingw32-gfortran.exe` : `${bin}/gfortran.exe`;
-		});
-	});
-	
-  vscode.commands.registerCommand('mingw64.mpicc.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mpicc.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.mpicxx.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mpicxx.exe`;});
-	});
-
-	vscode.commands.registerCommand('mingw64.mpifort.exe', function () {
-		return vscode.commands.executeCommand('mingw64.bin').then(bin => {return `${bin}/mpifort.exe`;});
-	});
-
-	// Clang32
-
-	vscode.commands.registerCommand('clang32.root', function () {
-		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/clang32`;});
-	});
-
-	vscode.commands.registerCommand('clang32.bin', function () {
-		return vscode.commands.executeCommand('clang32.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('clang32.path', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang32.gdb.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang32.cmake.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang32.meson.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang32.make.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {
-			return `${bin}/mingw32-make.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang32.ninja.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang32.cc.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {
-			return `${bin}/clang.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang32.cxx.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {
-			return `${bin}/clang++.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang32.fc.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {
-			return `${bin}/flang.exe`;
-		});
-	});
-
-  vscode.commands.registerCommand('clang32.mpicc.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/mpicc.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang32.mpicxx.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/mpicxx.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang32.mpifort.exe', function () {
-		return vscode.commands.executeCommand('clang32.bin').then(bin => {return `${bin}/mpifort.exe`;});
-	});
-
-  // Clang64
-
-	vscode.commands.registerCommand('clang64.root', function () {
-		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/clang64`;});
-	});
-
-	vscode.commands.registerCommand('clang64.bin', function () {
-		return vscode.commands.executeCommand('clang64.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('clang64.path', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang64.gdb.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang64.cmake.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang64.meson.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang64.make.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {
-			return `${bin}/mingw32-make.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang64.ninja.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang64.cc.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {
-			return `${bin}/clang.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang64.cxx.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {
-			return `${bin}/clang++.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('clang64.fc.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {
-			return `${bin}/flang.exe`;
-		});
-	});
-
-  vscode.commands.registerCommand('clang64.mpicc.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/mpicc.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang64.mpicxx.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/mpicxx.exe`;});
-	});
-
-	vscode.commands.registerCommand('clang64.mpifort.exe', function () {
-		return vscode.commands.executeCommand('clang64.bin').then(bin => {return `${bin}/mpifort.exe`;});
-	});
-
-  // UCRT64
-
-	vscode.commands.registerCommand('ucrt64.root', function () {
-		return vscode.commands.executeCommand(`msys2.root`).then(root => {return `${root}/ucrt64`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.bin', function () {
-		return vscode.commands.executeCommand('ucrt64.root').then(root => {return `${root}/bin`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.path', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(binDir => {
-			return `${binDir}${pathSeparator}${systemPath}`;
-		});
-	});
-
-	vscode.commands.registerCommand('ucrt64.gdb.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/gdb.exe`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.cmake.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/cmake.exe`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.meson.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/meson.exe`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.make.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
-			return `${bin}/mingw32-make.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('ucrt64.ninja.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/ninja.exe`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.cc.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
-			return `${bin}/gcc.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('ucrt64.cxx.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
-			return `${bin}/g++.exe`;
-		});
-	});
-
-	vscode.commands.registerCommand('ucrt64.fc.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {
-			return `${bin}/gfortran.exe`;
-		});
-	});
-
-  vscode.commands.registerCommand('ucrt64.mpicc.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/mpicc.exe`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.mpicxx.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/mpicxx.exe`;});
-	});
-
-	vscode.commands.registerCommand('ucrt64.mpifort.exe', function () {
-		return vscode.commands.executeCommand('ucrt64.bin').then(bin => {return `${bin}/mpifort.exe`;});
-	});
-
-  //
-  
 	console.log('MSYS2 extension activated');
 
 }
