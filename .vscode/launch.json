@@ -15,12 +15,13 @@
 		},
 		{
 			"name": "Extension Tests",
-			"type": "extensionHost",
+			"type": "node",
 			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/test/suite/index"
-			]
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["test"],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"skipFiles": ["<node_internals>/**"]
 		}
 	]
 }

@@ -207,7 +207,7 @@ function registerBuildKitCommands(pathSeparator) {
 	}
 }
 
-function activate(context) {
+function activate(_context) {
 
 	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
 
