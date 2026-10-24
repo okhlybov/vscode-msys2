@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.11.0]
+
+- VS Code required version bump to 1.74.0
+
 ## [0.10.1] 2026-10-03
 
 - Bug fixes
