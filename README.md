@@ -18,7 +18,21 @@ Technically the extension provides a set of commands for use with the `${command
 
 - Isolated operation where no global PATH modification is necessary
 
+- [Dashboard](#dashboard) for managing the extension: toolchain status, settings editing and the CMake Kits/Presets descriptors
+
 - Support for MSVCRT-based and UCRT-based MinGW toolchains provided by MSYS2
+
+## Dashboard
+
+The extension provides a GUI dashboard invoked via **`Ctrl+Shift+P` |> MSYS2: Open Dashboard** which offers:
+
+- An overview of the eight supported toolchain environments with their resolved locations and on-disk existence checks for the directories and the C/C++ compilers, make tools and Ninja
+
+- Editing of the extension settings (the toolchain roots, the MinGW providers and the CMake Presets generator); an emptied root field reverts the setting to its provider-derived default, and the values are stored in the per user settings
+
+- Injecting and removing the extension-managed CMake Kits and CMake Presets in the same fashion as the respective commands do
+
+The dashboard reflects the state as of its last refresh: use the **Refresh** button after altering the settings or the descriptors externally.
 
 ## Setup & Configuration
 

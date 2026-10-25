@@ -73,6 +73,11 @@
         "command": "msys2.presets.remove.project",
         "title": "Remove CMake Presets from Project Presets File",
         "category": "MSYS2"
+      },
+      {
+        "command": "msys2.dashboard",
+        "title": "Open Dashboard",
+        "category": "MSYS2"
       }
     ],
     "configuration": {

@@ -16,6 +16,8 @@
 
 - CMake Presets injection & removal commands for the per-user and shared project descriptors
 
+- Extension management dashboard
+
 - Regression test suite
 
 - Documentation fixes

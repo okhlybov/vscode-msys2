@@ -2,6 +2,8 @@ const vscode = require('vscode');
 const fs = require('fs/promises');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
+const pkg = require('./package.json');
 
 // Identifier of this extension as the manager of the CMake Kits entries it generates
 const kitsManager = 'fougas.msys2';
@@ -451,6 +453,252 @@ async function runDescriptorUpdate(file, inject, update, what) {
 	}
 }
 
+// Settings manageable via the dashboard
+const dashboardSettings = [
+	{name: 'msys2.root', kind: 'text'},
+	{name: 'cygwin32.root', kind: 'text'},
+	{name: 'cygwin64.root', kind: 'text'},
+	{name: 'mingw32.root', kind: 'text'},
+	{name: 'mingw32.provider', kind: 'select', options: ['msys2', 'cygwin32', 'cygwin64']},
+	{name: 'mingw64.root', kind: 'text'},
+	{name: 'mingw64.provider', kind: 'select', options: ['msys2', 'cygwin32', 'cygwin64']},
+	{name: 'msys2.presets.generator', kind: 'select', options: ['Ninja', 'Ninja Multi-Config', 'MinGW Makefiles', 'Unix Makefiles']}
+];
+
+// Dashboard action targets
+const dashboardTargets = {
+	'kits.user': {file: userKitsFile, update: updateKitsFile, what: 'CMake Kits'},
+	'kits.project': {file: projectKitsFile, update: updateKitsFile, what: 'CMake Kits'},
+	'presets.user': {file: userPresetsFile, update: updatePresetsFile, what: 'CMake Presets'},
+	'presets.project': {file: projectPresetsFile, update: updatePresetsFile, what: 'CMake Presets'}
+};
+
+// Check whether a path exists on disk
+async function pathExists(p) {
+	try {
+		await fs.stat(p);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+// Summarize a cmake-kits.json descriptor: whether it exists and how many entries are managed by this extension
+async function kitsSummary(file) {
+	if(!file || !await pathExists(file)) return {file: file || null, exists: false, managed: 0, foreign: 0};
+	try {
+		const kits = JSON.parse(await fs.readFile(file, 'utf8'));
+		const managedNames = new Set(cmakeKits().map(kit => kit.name));
+		const managed = kits.filter(kit => isManagedKit(kit, managedNames)).length;
+		return {file, exists: true, managed, foreign: kits.length - managed};
+	} catch {
+		return {file, exists: true, managed: 0, foreign: 0}; // unparsable descriptor
+	}
+}
+
+// Summarize a CMake presets descriptor: whether it exists and how many entries are managed by this extension
+async function presetsSummary(file) {
+	if(!file || !await pathExists(file)) return {file: file || null, exists: false, managed: 0, foreign: 0};
+	try {
+		const doc = JSON.parse(await fs.readFile(file, 'utf8'));
+		const managed = managedPresetNames(doc);
+		const managedIn = presets => (presets || []).filter(preset => managed.has(preset.name)).length;
+		const total = (doc.configurePresets || []).length + (doc.buildPresets || []).length;
+		const managedCount = managedIn(doc.configurePresets) + managedIn(doc.buildPresets);
+		return {file, exists: true, managed: managedCount, foreign: total - managedCount};
+	} catch {
+		return {file, exists: true, managed: 0, foreign: 0}; // unparsable descriptor
+	}
+}
+
+// Compose the dashboard view model
+async function dashboardModel() {
+	const config = vscode.workspace.getConfiguration();
+	const settings = {};
+	for(const setting of dashboardSettings) settings[setting.name] = config.get(setting.name);
+	const rows = [];
+	for(const name of kitOrder) {
+		const root = await vscode.commands.executeCommand(`${name}.root`);
+		const tools = [];
+		for(const tool of ['cc', 'make', 'ninja']) {
+			const toolPath = await vscode.commands.executeCommand(`${name}.${tool}.exe`);
+			tools.push({tool, path: toolPath, exists: await pathExists(toolPath)});
+		}
+		rows.push({name, kit: environments[name].kit, root, bin: await vscode.commands.executeCommand(`${name}.bin`), exists: await pathExists(root), tools});
+	}
+	return {
+		app: vscode.env.appName,
+		version: pkg.version,
+		settings,
+		settingsMeta: dashboardSettings,
+		environments: rows,
+		kits: {user: await kitsSummary(userKitsFile()), project: await kitsSummary(projectKitsFile())},
+		presets: {user: await presetsSummary(userPresetsFile()), project: await presetsSummary(projectPresetsFile())}
+	};
+}
+
+// Compose the dashboard webview HTML; the model is rendered client-side, so the same code path handles re-renders
+function dashboardHtml(model, cspSource, nonce) {
+	const json = JSON.stringify(model).replace(/</g, '\\u003c'); // keep the embedded JSON from breaking out of the script element
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+<style>
+body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 12px; font-size: 13px; }
+section { margin: 0 0 20px; }
+h1 { font-size: 16px; margin: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; opacity: .8; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.4)); padding-bottom: 4px; margin: 0 0 8px; }
+header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 4px 8px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.4)); }
+th { opacity: .8; font-weight: normal; }
+code { font-family: var(--vscode-editor-font-family, monospace); font-size: 11px; }
+.chip { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 11px; margin: 1px 2px 1px 0; font-family: var(--vscode-editor-font-family, monospace); }
+.chip.ok { background: rgba(63,185,80,.25); }
+.chip.bad { background: rgba(248,81,73,.25); }
+button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 2px; padding: 3px 10px; cursor: pointer; font-size: 12px; margin: 1px 2px 1px 0; }
+button:hover { background: var(--vscode-button-hoverBackground); }
+button:disabled { opacity: .5; cursor: default; }
+input, select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); border-radius: 2px; padding: 2px 4px; width: 300px; font-size: 12px; font-family: var(--vscode-editor-font-family, monospace); }
+.grid { display: grid; grid-template-columns: max-content 320px; gap: 6px 14px; align-items: center; }
+.row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.muted { opacity: .7; }
+</style>
+</head>
+<body>
+<header>
+<h1>MSYS2 Dashboard</h1>
+<span id="app" class="muted"></span>
+<span id="version" class="muted"></span>
+<button id="refresh" title="Re-resolve the toolchains and descriptors">Refresh</button>
+</header>
+<section>
+<h2>Settings</h2>
+<div id="settings" class="grid"></div>
+<div class="row" style="margin-top:8px">
+<button id="save">Save Settings</button>
+<span class="muted">An emptied root reverts to the provider-derived location; values are stored in the user settings.</span>
+</div>
+</section>
+<section><h2>Toolchain Environments</h2><div id="environments"></div></section>
+<section><h2>CMake Kits</h2><div id="kits"></div></section>
+<section><h2>CMake Presets</h2><div id="presets"></div></section>
+<script nonce="${nonce}">
+const vscode = acquireVsCodeApi();
+let model = ${json};
+
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const chip = (exists, text, title) => '<span class="chip ' + (exists ? 'ok' : 'bad') + '" title="' + esc(title || text) + '">' + (exists ? '&#10003;' : '&#10007;') + ' ' + esc(text) + '</span>';
+const action = (target, op, label, disabled) => '<button data-target="' + target + '" data-op="' + op + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button>';
+
+function renderSettings() {
+	let html = '';
+	for(const meta of model.settingsMeta) {
+		const value = model.settings[meta.name];
+		const id = 'set-' + esc(meta.name);
+		html += '<label for="' + id + '">' + esc(meta.name) + '</label>';
+		if(meta.kind == 'select') {
+			html += '<select id="' + id + '" data-setting="' + esc(meta.name) + '">';
+			for(const option of meta.options) html += '<option value="' + esc(option) + '"' + (option == value ? ' selected' : '') + '>' + esc(option) + '</option>';
+			html += '</select>';
+		}
+		else {
+			html += '<input id="' + id + '" data-setting="' + esc(meta.name) + '" value="' + esc(value == null ? '' : value) + '" placeholder="&lt;unset&gt;">';
+		}
+	}
+	el('settings').innerHTML = html;
+}
+
+function renderEnvironments() {
+	let html = '<table><tr><th>Kit</th><th>Root</th><th>Tools</th></tr>';
+	for(const env of model.environments) {
+		html += '<tr><td>' + esc(env.kit) + '</td><td>' + chip(env.exists, env.root) + '</td><td>'
+			+ env.tools.map(tool => chip(tool.exists, tool.tool, tool.path)).join(' ') + '</td></tr>';
+	}
+	el('environments').innerHTML = html + '</table>';
+}
+
+function descriptorRow(title, descriptor, target) {
+	const state = descriptor.file ? (descriptor.exists ? descriptor.managed + ' managed, ' + descriptor.foreign + ' foreign' : 'missing') : 'no workspace folder';
+	return '<div class="row"><b style="min-width:90px;display:inline-block">' + title + '</b>'
+		+ '<code>' + esc(descriptor.file || '&#8212;') + '</code>'
+		+ '<span class="muted">' + esc(state) + '</span>'
+		+ action(target, 'inject', 'Inject', !descriptor.file)
+		+ action(target, 'remove', 'Remove', !descriptor.file) + '</div>';
+}
+
+function render() {
+	el('app').textContent = model.app;
+	el('version').textContent = 'v' + model.version;
+	renderSettings();
+	renderEnvironments();
+	el('kits').innerHTML = descriptorRow('User-Local', model.kits.user, 'kits.user') + descriptorRow('Project', model.kits.project, 'kits.project');
+	el('presets').innerHTML = descriptorRow('User', model.presets.user, 'presets.user') + descriptorRow('Project', model.presets.project, 'presets.project');
+}
+
+document.addEventListener('click', event => {
+	const button = event.target.closest('button[data-target]');
+	if(button) vscode.postMessage({type: 'action', target: button.dataset.target, op: button.dataset.op});
+});
+el('refresh').addEventListener('click', () => vscode.postMessage({type: 'refresh'}));
+el('save').addEventListener('click', () => {
+	const values = {};
+	document.querySelectorAll('[data-setting]').forEach(input => values[input.dataset.setting] = input.value);
+	vscode.postMessage({type: 'saveSettings', values});
+});
+window.addEventListener('message', event => {
+	if(event.data && event.data.type == 'model') {
+		model = event.data.model;
+		render();
+	}
+});
+
+render();
+</script>
+</body>
+</html>`;
+}
+
+// Register the command opening the extension management dashboard
+function registerDashboardCommand(subscriptions) {
+	let panel = null;
+	const postModel = async () => panel && panel.webview.postMessage({type: 'model', model: await dashboardModel()});
+	const open = async () => {
+		if(panel) {
+			panel.reveal();
+			return;
+		}
+		panel = vscode.window.createWebviewPanel('msys2.dashboard', 'MSYS2 Dashboard', vscode.ViewColumn.Active,
+			{enableScripts: true, retainContextWhenHidden: true});
+		panel.onDidDispose(() => panel = null, null, subscriptions);
+		panel.webview.onDidReceiveMessage(async message => {
+			if(message.type == 'refresh') {
+				await postModel();
+			}
+			else if(message.type == 'action') {
+				const target = dashboardTargets[message.target];
+				if(target) await runDescriptorUpdate(target.file(), message.op == 'inject', target.update, target.what);
+				await postModel();
+			}
+			else if(message.type == 'saveSettings') {
+				const config = vscode.workspace.getConfiguration();
+				const known = new Set(dashboardSettings.map(setting => setting.name));
+				for(const [key, value] of Object.entries(message.values)) {
+					if(!known.has(key)) continue;
+					await config.update(key, value === '' ? undefined : value, vscode.ConfigurationTarget.Global); // an emptied value unsets the setting
+				}
+				vscode.window.showInformationMessage('MSYS2: settings saved');
+				await postModel();
+			}
+		}, null, subscriptions);
+		panel.webview.html = dashboardHtml(await dashboardModel(), panel.webview.cspSource, crypto.randomBytes(16).toString('hex'));
+	};
+	registerCommand(subscriptions, 'msys2.dashboard', open);
+}
+
 function activate(context) {
 
 	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
@@ -461,6 +709,7 @@ function activate(context) {
 	registerBuildKitCommands(context.subscriptions, pathSeparator, systemPath);
 	registerKitsCommands(context.subscriptions);
 	registerPresetsCommands(context.subscriptions);
+	registerDashboardCommand(context.subscriptions);
 
 	for(const [name, env] of Object.entries(environments)) {
 		registerEnvironment(context.subscriptions, name, env, pathSeparator, systemPath);
@@ -484,5 +733,7 @@ module.exports = {
 	cmakePresets,
 	mergePresets,
 	removePresets,
-	updatePresetsFile
+	updatePresetsFile,
+	dashboardModel,
+	dashboardHtml
 }

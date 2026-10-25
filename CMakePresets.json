@@ -1,0 +1,206 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "common",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "inherits": "common",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "posix",
+      "hidden": true,
+      "inherits": "common",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "displayName": "Ninja (Multi-Config)",
+      "name": "ninjamc",
+      "generator": "Ninja Multi-Config",
+      "inherits": "common"
+    },
+    {
+      "displayName": "Visual Studio 2026",
+      "name": "vs2026",
+      "generator": "Visual Studio 18",
+      "inherits": "windows"
+    },
+    {
+      "displayName": "Visual Studio 2022",
+      "name": "vs2022",
+      "generator": "Visual Studio 17 2022",
+      "inherits": "windows"
+    },
+    {
+      "displayName": "Visual Studio 2019",
+      "name": "vs2019",
+      "generator": "Visual Studio 16 2019",
+      "inherits": "windows"
+    },
+    {
+      "displayName": "Ninja: Debug",
+      "name": "ninja-Debug",
+      "generator": "Ninja",
+      "inherits": "common",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "displayName": "Ninja: Release",
+      "name": "ninja-Release",
+      "generator": "Ninja",
+      "inherits": "common",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "displayName": "Make: Debug",
+      "name": "make-Debug",
+      "generator": "Unix Makefiles",
+      "inherits": "posix",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "displayName": "Make: Release",
+      "name": "make-Release",
+      "generator": "Unix Makefiles",
+      "inherits": "posix",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "displayName": "Ninja Multi-Config Debug",
+      "name": "ninjamc-Debug",
+      "configurePreset": "ninjamc",
+      "configuration": "Debug"
+    },
+    {
+      "displayName": "Ninja Multi-Config Release",
+      "name": "ninjamc-Release",
+      "configurePreset": "ninjamc",
+      "configuration": "Release"
+    },
+    {
+      "displayName": "Ninja Debug",
+      "name": "ninja-Debug",
+      "configurePreset": "ninja-Debug"
+    },
+    {
+      "displayName": "Ninja Release",
+      "name": "ninja-Release",
+      "configurePreset": "ninja-Release"
+    },
+    {
+      "displayName": "Make Debug",
+      "name": "make-Debug",
+      "configurePreset": "make-Debug"
+    },
+    {
+      "displayName": "Make Release",
+      "name": "make-Release",
+      "configurePreset": "make-Release"
+    },
+    {
+      "displayName": "Visual Studio 2026 Debug",
+      "name": "vs2026-Debug",
+      "configurePreset": "vs2026",
+      "configuration": "Debug"
+    },
+    {
+      "displayName": "Visual Studio 2026 Release",
+      "name": "vs2026-Release",
+      "configurePreset": "vs2026",
+      "configuration": "Release"
+    },
+    {
+      "displayName": "Visual Studio 2022 Debug",
+      "name": "vs2022-Debug",
+      "configurePreset": "vs2022",
+      "configuration": "Debug"
+    },
+    {
+      "displayName": "Visual Studio 2022 Release",
+      "name": "vs2022-Release",
+      "configurePreset": "vs2022",
+      "configuration": "Release"
+    },
+    {
+      "displayName": "Visual Studio 2019 Debug",
+      "name": "vs2019-Debug",
+      "configurePreset": "vs2019",
+      "configuration": "Debug"
+    },
+    {
+      "displayName": "Visual Studio 2019 Release",
+      "name": "vs2019-Release",
+      "configurePreset": "vs2019",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "displayName": "Ninja Multi-Config Debug",
+      "name": "ninjamc-Debug",
+      "configurePreset": "ninjamc",
+      "configuration": "Debug"
+    },
+    {
+      "displayName": "Ninja Multi-Config Release",
+      "name": "ninjamc-Release",
+      "configurePreset": "ninjamc",
+      "configuration": "Release"
+    },
+    {
+      "displayName": "Ninja Debug",
+      "name": "ninja-Debug",
+      "configurePreset": "ninja-Debug"
+    },
+    {
+      "displayName": "Ninja Release",
+      "name": "ninja-Release",
+      "configurePreset": "ninja-Release"
+    },
+    {
+      "displayName": "Make Debug",
+      "name": "make-Debug",
+      "configurePreset": "make-Debug"
+    },
+    {
+      "displayName": "Make Release",
+      "name": "make-Release",
+      "configurePreset": "make-Release"
+    },
+    {
+      "displayName": "Visual Studio 2022 Debug",
+      "name": "vs2022-Debug",
+      "configurePreset": "vs2022",
+      "configuration": "Debug"
+    },
+    {
+      "displayName": "Visual Studio 2022 Release",
+      "name": "vs2022-Release",
+      "configurePreset": "vs2022",
+      "configuration": "Release"
+    }
+  ]
+}

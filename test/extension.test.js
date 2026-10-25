@@ -41,7 +41,10 @@ class MockVSCode {
 		}
 	};
 
+	env = {appName: 'Visual Studio Code'};
+
 	workspace = {
+		workspaceFolders: null,
 		getConfiguration: () => ({get: key => this.settings.get(key)})
 	};
 }
@@ -78,11 +81,12 @@ const set = overrides => {
 };
 
 test('registers the complete command set', () => {
-	assert.equal(mock.registered.size, 132);
+	assert.equal(mock.registered.size, 133);
 	// Every command disposable is deferred to the extension subscriptions
 	assert.equal(mock.subscriptions.length, mock.registered.size);
 	for(const cmd of ['msys2.kits.inject.user', 'msys2.kits.remove.user', 'msys2.kits.inject.project', 'msys2.kits.remove.project',
-		'msys2.presets.inject.user', 'msys2.presets.remove.user', 'msys2.presets.inject.project', 'msys2.presets.remove.project']) {
+		'msys2.presets.inject.user', 'msys2.presets.remove.user', 'msys2.presets.inject.project', 'msys2.presets.remove.project',
+		'msys2.dashboard']) {
 		assert.ok(mock.registered.has(cmd), cmd);
 	}
 	for(const env of ['msys2', 'cygwin32', 'cygwin64', 'mingw32', 'mingw64', 'clang32', 'clang64', 'ucrt64']) {
@@ -365,4 +369,54 @@ test('presets descriptor round-trip via inject and remove', async () => {
 	} finally {
 		fs.rmSync(dir, {recursive: true, force: true});
 	}
+});
+
+test('dashboard model summarizes environments and descriptors', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'msys2-dash-'));
+	try {
+		const bin = path.join(dir, 'msys64', 'usr', 'bin');
+		fs.mkdirSync(bin, {recursive: true});
+		for(const exe of ['gcc.exe', 'make.exe', 'ninja.exe']) fs.writeFileSync(path.join(bin, exe), '');
+		set({'msys2.root': path.join(dir, 'msys64')});
+		mock.workspace.workspaceFolders = [{uri: {fsPath: path.join(dir, 'ws')}}];
+		const model = await mock.extension.dashboardModel();
+		assert.equal(model.environments.length, 8);
+		assert.ok(model.version);
+		assert.equal(model.settings['msys2.presets.generator'], 'Ninja');
+		const msysRow = model.environments.find(row => row.name == 'msys2');
+		assert.equal(msysRow.exists, true); // the fake root is on disk
+		assert.equal(msysRow.tools.find(tool => tool.tool == 'cc').exists, true); // gcc.exe created above
+		assert.equal(msysRow.tools.find(tool => tool.tool == 'ninja').exists, true);
+		const mingwRow = model.environments.find(row => row.name == 'mingw32');
+		assert.equal(mingwRow.exists, false); // no mingw32 subdir within the fake root
+		assert.equal(mingwRow.tools.find(tool => tool.tool == 'cc').exists, false);
+		assert.equal(model.kits.project.exists, false); // no descriptors yet
+		assert.equal(model.presets.project.exists, false);
+		assert.equal(model.presets.user.file, path.join(dir, 'ws', 'CMakeUserPresets.json'));
+		await mock.extension.updateKitsFile(model.kits.project.file, true);
+		await mock.extension.updatePresetsFile(model.presets.user.file, true);
+		const refreshed = await mock.extension.dashboardModel();
+		assert.deepEqual(refreshed.kits.project, {file: model.kits.project.file, exists: true, managed: 8, foreign: 0});
+		assert.deepEqual(refreshed.presets.user, {file: model.presets.user.file, exists: true, managed: 16, foreign: 0});
+	} finally {
+		mock.workspace.workspaceFolders = null;
+		fs.rmSync(dir, {recursive: true, force: true});
+	}
+});
+
+test('dashboard HTML embeds the model behind a strict CSP', async () => {
+	set({});
+	const model = await mock.extension.dashboardModel();
+	const html = mock.extension.dashboardHtml(model, 'https://test.csp', 'abc123nonce');
+	assert.ok(html.includes("script-src 'nonce-abc123nonce'"));
+	assert.ok(html.includes('acquireVsCodeApi'));
+	assert.equal((html.match(/<script/g) || []).length, 1); // a single, nonce'd script
+	// the model is embedded for the initial client-side render
+	assert.ok(html.includes(`"version":"${model.version}"`));
+	// every dashboard action target is reachable
+	for(const target of ['kits.user', 'kits.project', 'presets.user', 'presets.project']) {
+		assert.ok(html.includes(`'${target}'`), target);
+	}
+	// the settings form is driven by the embedded metadata
+	assert.ok(html.includes('data-setting='));
 });
