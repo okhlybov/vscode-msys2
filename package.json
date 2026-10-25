@@ -33,6 +33,28 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "msys2.kits.inject.user",
+        "title": "Inject CMake Kits into User-Local Configuration",
+        "category": "MSYS2"
+      },
+      {
+        "command": "msys2.kits.remove.user",
+        "title": "Remove CMake Kits from User-Local Configuration",
+        "category": "MSYS2"
+      },
+      {
+        "command": "msys2.kits.inject.project",
+        "title": "Inject CMake Kits into the Project",
+        "category": "MSYS2"
+      },
+      {
+        "command": "msys2.kits.remove.project",
+        "title": "Remove CMake Kits from the Project",
+        "category": "MSYS2"
+      }
+    ],
     "configuration": {
       "title": "MSYS2",
       "properties": {

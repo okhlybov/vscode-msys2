@@ -10,6 +10,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const {test} = require('node:test');
 const Module = require('node:module');
 
@@ -54,8 +55,10 @@ function loadExtension() {
 	try {
 		delete require.cache[require.resolve('../extension.js')];
 		const subscriptions = [];
-		require('../extension.js').activate({subscriptions});
+		const extension = require('../extension.js');
+		extension.activate({subscriptions});
 		mock.subscriptions = subscriptions;
+		mock.extension = extension;
 	} finally {
 		Module.prototype.require = originalRequire;
 	}
@@ -75,9 +78,12 @@ const set = overrides => {
 };
 
 test('registers the complete command set', () => {
-	assert.equal(mock.registered.size, 124);
+	assert.equal(mock.registered.size, 128);
 	// Every command disposable is deferred to the extension subscriptions
 	assert.equal(mock.subscriptions.length, mock.registered.size);
+	for(const cmd of ['msys2.kits.inject.user', 'msys2.kits.remove.user', 'msys2.kits.inject.project', 'msys2.kits.remove.project']) {
+		assert.ok(mock.registered.has(cmd), cmd);
+	}
 	for(const env of ['msys2', 'cygwin32', 'cygwin64', 'mingw32', 'mingw64', 'clang32', 'clang64', 'ucrt64']) {
 		for(const cmd of ['root', 'bin', 'path', 'gdb.exe', 'cmake.exe', 'meson.exe', 'make.exe', 'ninja.exe', 'cc.exe', 'cxx.exe', 'fc.exe']) {
 			assert.ok(mock.registered.has(`${env}.${cmd}`), `${env}.${cmd}`);
@@ -175,4 +181,81 @@ test('generator selection follows cmake.generator', async () => {
 	set({'cmake.generator': 'Visual Studio 17 2022'});
 	mock.kitName = 'UCRT64';
 	assert.equal(await run('cmake.buildkit.generator.exe'), 'c:/msys64/ucrt64/bin/mingw32-make.exe');
+});
+
+test('managed CMake Kits match the toolchain environments', () => {
+	const kits = mock.extension.cmakeKits();
+	assert.deepEqual(kits.map(kit => kit.name), ['MinGW32', 'MinGW64', 'UCRT64', 'Clang32', 'Clang64', 'MSYS2', 'Cygwin32', 'Cygwin64']);
+	for(const kit of kits) {
+		assert.equal(kit.manager, 'fougas.msys2', kit.name);
+		assert.equal(kit.keep, true, kit.name);
+		assert.ok(kit.environmentVariables.PATH.startsWith('${command:'), kit.name);
+		assert.ok(kit.cmakeSettings.CMAKE_C_COMPILER.startsWith('${command:'), kit.name);
+	}
+	const mingw = kits.find(kit => kit.name == 'MinGW64');
+	assert.equal(mingw.preferredGenerator.name, 'MinGW Makefiles');
+	assert.equal(mingw.environmentVariables.PATH, '${command:mingw64.path}');
+	assert.equal(mingw.cmakeSettings.MPI_Fortran_COMPILER, '${command:mingw64.mpifort.exe}');
+	const msys = kits.find(kit => kit.name == 'MSYS2');
+	assert.equal(msys.preferredGenerator.name, 'Unix Makefiles');
+	assert.equal(msys.cmakeSettings.MPI_C_COMPILER, undefined); // no MPI under the POSIX-like environments
+});
+
+test('merging preserves foreign kits and replaces the managed ones', () => {
+	const existing = [
+		{name: 'Custom-Clang-LLVM', keep: true},
+		{name: 'MinGW64', compilers: {C: 'D:/old/gcc.exe'}} // legacy hand-pasted entry
+	];
+	const merged = mock.extension.mergeKits(existing);
+	assert.equal(merged.length, 9);
+	assert.ok(merged.some(kit => kit.name == 'Custom-Clang-LLVM' && kit.manager === undefined));
+	const mingw = merged.filter(kit => kit.name == 'MinGW64');
+	assert.equal(mingw.length, 1); // the legacy entry is replaced by the managed one
+	assert.equal(mingw[0].manager, 'fougas.msys2');
+});
+
+test('removal strips the managed and legacy same-named kits only', () => {
+	const existing = [
+		{name: 'Custom-Clang-LLVM', keep: true},
+		{name: 'MinGW64'}, // legacy same-named entry
+		{name: 'UCRT64', manager: 'fougas.msys2'},
+		{name: 'Alien', manager: 'fougas.msys2'} // marker-bearing entry is ours regardless of the name
+	];
+	const remaining = mock.extension.removeKits(existing);
+	assert.deepEqual(remaining.map(kit => kit.name), ['Custom-Clang-LLVM']);
+});
+
+test('foreign kits remain intact through inject and remove', () => {
+	const foreign = [
+		{name: 'Custom-Clang-LLVM', compilers: {C: '/usr/bin/clang'}, preferredGenerator: {name: 'Ninja'}, keep: true},
+		{name: 'GCC 13.2', compilers: {C: 'D:\\tools\\gcc.exe'}, environmentVariables: {PATH: 'D:\\tools\\bin'}}
+	];
+	const injected = mock.extension.mergeKits([...foreign, {name: 'MinGW64', compilers: {C: 'D:/old/gcc.exe'}}]);
+	// the foreign entries are passed through as the very same objects, not rebuilt copies
+	assert.equal(injected[0], foreign[0]);
+	assert.equal(injected[1], foreign[1]);
+	assert.deepEqual(injected.slice(0, 2), foreign);
+	const removed = mock.extension.removeKits(injected);
+	assert.deepEqual(removed, foreign);
+	assert.equal(removed[0], foreign[0]);
+});
+
+test('kits descriptor round-trip via inject and remove', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'msys2-kits-'));
+	try {
+		const file = path.join(dir, '.vscode', 'cmake-kits.json');
+		assert.equal((await mock.extension.updateKitsFile(file, true)).count, 8);
+		let kits = JSON.parse(fs.readFileSync(file, 'utf8'));
+		assert.equal(kits.length, 8);
+		kits.push({name: 'Custom', keep: true});
+		fs.writeFileSync(file, JSON.stringify(kits, null, 2));
+		assert.equal((await mock.extension.updateKitsFile(file, true)).count, 8); // idempotent re-inject
+		kits = JSON.parse(fs.readFileSync(file, 'utf8'));
+		assert.equal(kits.length, 9); // the foreign kit survives, the managed ones are refreshed
+		assert.equal((await mock.extension.updateKitsFile(file, false)).count, 8);
+		kits = JSON.parse(fs.readFileSync(file, 'utf8'));
+		assert.deepEqual(kits.map(kit => kit.name), ['Custom']);
+	} finally {
+		fs.rmSync(dir, {recursive: true, force: true});
+	}
 });

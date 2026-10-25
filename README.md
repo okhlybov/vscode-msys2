@@ -176,7 +176,19 @@ Anyway, the switching between Ninja and Multi-Config Ninja is as simple as chang
 
 #### CMakeTools integration
 
-In order to configure per user MSYS2-specific CMakeTools' [CMake Kits](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/kits.md), issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
+The extension automates the CMake Kits management with the following commands available via the command palette (**`Ctrl+Shift+P`**):
+
+- **MSYS2: Inject CMake Kits into User-Local Configuration**
+
+- **MSYS2: Remove CMake Kits from User-Local Configuration**
+
+- **MSYS2: Inject CMake Kits into the Project**
+
+- **MSYS2: Remove CMake Kits from the Project**
+
+The inject commands add or update the kit entries listed below in the user-local and the primary workspace folder's `.vscode` `cmake-kits.json` descriptors, respectively, marking them with the `manager` property. The remove commands strip both the marked entries and the legacy same-named ones while keeping any third-party kits intact.
+
+Alternatively, the kits can be configured manually: issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
 [

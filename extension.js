@@ -1,4 +1,10 @@
 const vscode = require('vscode');
+const fs = require('fs/promises');
+const path = require('path');
+const os = require('os');
+
+// Identifier of this extension as the manager of the CMake Kits entries it generates
+const kitsManager = 'fougas.msys2';
 
 function normalizePath(p) {
 	return p ? p.replace(/\\/g, '/') : '';
@@ -86,6 +92,8 @@ const mpiTools = {
 // Cygwin-hosted toolchain environment with its own GNU compiler suite and no MPI support
 function cygwinEnv(bit) {
 	return {
+		kit: `Cygwin${bit}`,
+		kitGenerator: 'Unix Makefiles',
 		bin: 'bin',
 		root: () => normalizePath(vscode.workspace.getConfiguration().get(`cygwin${bit}.root`)),
 		tools: { bash: 'bash.exe', ...commonTools, ...gnuTools }
@@ -96,6 +104,9 @@ function cygwinEnv(bit) {
 function mingwEnv(bit) {
 	const prefix = `${bit == 32 ? 'i686' : 'x86_64'}-w64-mingw32`;
 	return {
+		kit: `MinGW${bit}`,
+		kitGenerator: 'MinGW Makefiles',
+		kitMPI: true,
 		bin: 'bin',
 		root: () => mingwRoot(bit),
 		tools: {
@@ -113,6 +124,9 @@ function mingwEnv(bit) {
 // MSYS2-hosted Clang toolchain environment
 function clangEnv(dir) {
 	return {
+		kit: `Clang${dir}`,
+		kitGenerator: 'MinGW Makefiles',
+		kitMPI: true,
 		bin: 'bin',
 		root: () => `${rootOf('msys2')}/clang${dir}`,
 		tools: {
@@ -130,6 +144,8 @@ function clangEnv(dir) {
 // Toolchain environments; a tool entry is either an executable name within the bin directory or a function of it
 const environments = {
 	msys2: {
+		kit: 'MSYS2',
+		kitGenerator: 'Unix Makefiles',
 		bin: 'usr/bin',
 		root: () => normalizePath(vscode.workspace.getConfiguration().get('msys2.root')),
 		tools: { bash: 'bash.exe', ...commonTools, ...gnuTools, ...mpiTools }
@@ -141,6 +157,9 @@ const environments = {
 	clang32: clangEnv(32),
 	clang64: clangEnv(64),
 	ucrt64: {
+		kit: 'UCRT64',
+		kitGenerator: 'MinGW Makefiles',
+		kitMPI: true,
 		bin: 'bin',
 		root: () => `${rootOf('msys2')}/ucrt64`,
 		tools: { ...commonTools, ...gnuTools, ...mpiTools, make: 'mingw32-make.exe' }
@@ -215,6 +234,112 @@ function registerBuildKitCommands(subscriptions, pathSeparator, systemPath) {
 	}
 }
 
+// Toolchain environments in the order their CMake Kits are injected
+const kitOrder = ['mingw32', 'mingw64', 'ucrt64', 'clang32', 'clang64', 'msys2', 'cygwin32', 'cygwin64'];
+
+// Compose the extension-managed CMake Kits entries; the manager property marks the ownership
+function cmakeKits() {
+	return kitOrder.map(name => {
+		const env = environments[name];
+		const settings = {
+			CMAKE_C_COMPILER: `\${command:${name}.cc.exe}`,
+			CMAKE_CXX_COMPILER: `\${command:${name}.cxx.exe}`,
+			CMAKE_Fortran_COMPILER: `\${command:${name}.fc.exe}`
+		};
+		if(env.kitMPI) {
+			settings.MPI_C_COMPILER = `\${command:${name}.mpicc.exe}`;
+			settings.MPI_CXX_COMPILER = `\${command:${name}.mpicxx.exe}`;
+			settings.MPI_Fortran_COMPILER = `\${command:${name}.mpifort.exe}`;
+		}
+		return {
+			name: env.kit,
+			preferredGenerator: {name: env.kitGenerator},
+			environmentVariables: {PATH: `\${command:${name}.path}`},
+			cmakeSettings: settings,
+			keep: true,
+			manager: kitsManager
+		};
+	});
+}
+
+// Check whether a kit entry is owned by this extension: either explicitly marked or bearing one of the managed names
+function isManagedKit(kit, managedNames) {
+	return kit.manager === kitsManager || managedNames.has(kit.name);
+}
+
+// Merge the extension-managed kits into the existing ones, replacing the same-named entries and keeping the foreign ones intact
+function mergeKits(existing) {
+	const managedNames = new Set(cmakeKits().map(kit => kit.name));
+	return [...existing.filter(kit => !isManagedKit(kit, managedNames)), ...cmakeKits()];
+}
+
+// Strip the extension-managed kits from the existing entries keeping the foreign ones intact
+function removeKits(existing) {
+	const managedNames = new Set(cmakeKits().map(kit => kit.name));
+	return existing.filter(kit => !isManagedKit(kit, managedNames));
+}
+
+// Inject or remove the extension-managed kits in a cmake-kits.json descriptor, creating it as needed
+async function updateKitsFile(file, inject) {
+	let existing = [];
+	let existed = true;
+	try {
+		const text = await fs.readFile(file, 'utf8');
+		if(text.trim()) existing = JSON.parse(text);
+	} catch(err) {
+		if(err.code != 'ENOENT') throw new Error(`cannot parse ${file}: ${err.message}`);
+		existed = false;
+	}
+	const updated = inject ? mergeKits(existing) : removeKits(existing);
+	if(!updated.length && !existed && !inject) return {file, count: 0}; // nothing to remove, keep the missing descriptor as is
+	await fs.mkdir(path.dirname(file), {recursive: true});
+	await fs.writeFile(file, JSON.stringify(updated, null, 2) + '\n');
+	return {file, count: inject ? cmakeKits().length : existing.length - updated.length};
+}
+
+// VS Code user configuration folder name, e.g. Code, Code - Insiders, VSCodium
+function appConfigFolder() {
+	const app = vscode.env.appName || '';
+	if(/insiders/i.test(app)) return 'Code - Insiders';
+	if(/codium/i.test(app)) return 'VSCodium';
+	return 'Code';
+}
+
+// Location of the user-local cmake-kits.json descriptor used by the CMakeTools
+function userKitsFile() {
+	const appData = process.env.VSCODE_PORTABLE_USER_DATA
+		|| (process.platform == 'win32'
+			? process.env.APPDATA
+			: path.join(os.homedir(), process.platform == 'darwin' ? 'Library/Application Support' : '.config'));
+	return path.join(appData, appConfigFolder(), 'User', 'cmake-kits.json');
+}
+
+// Location of the per-project cmake-kits.json descriptor of the primary workspace folder
+function projectKitsFile() {
+	const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+	return folder ? path.join(folder.uri.fsPath, '.vscode', 'cmake-kits.json') : null;
+}
+
+// Register the commands injecting and removing the extension-managed CMake Kits
+function registerKitsCommands(subscriptions) {
+	const update = async (file, inject) => {
+		if(!file) {
+			vscode.window.showErrorMessage('MSYS2: no workspace folder is open');
+			return;
+		}
+		try {
+			const res = await updateKitsFile(file, inject);
+			vscode.window.showInformationMessage(`MSYS2: ${res.count} CMake Kits ${inject ? 'written to' : 'removed from'} ${res.file}`);
+		} catch(err) {
+			vscode.window.showErrorMessage(`MSYS2: ${err.message}`);
+		}
+	};
+	registerCommand(subscriptions, 'msys2.kits.inject.user', () => update(userKitsFile(), true));
+	registerCommand(subscriptions, 'msys2.kits.remove.user', () => update(userKitsFile(), false));
+	registerCommand(subscriptions, 'msys2.kits.inject.project', () => update(projectKitsFile(), true));
+	registerCommand(subscriptions, 'msys2.kits.remove.project', () => update(projectKitsFile(), false));
+}
+
 function activate(context) {
 
 	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
@@ -223,6 +348,7 @@ function activate(context) {
 	const systemPath = rawPath.split(/\\?;/).join(pathSeparator); // Proper escaping of the system PATH
 
 	registerBuildKitCommands(context.subscriptions, pathSeparator, systemPath);
+	registerKitsCommands(context.subscriptions);
 
 	for(const [name, env] of Object.entries(environments)) {
 		registerEnvironment(context.subscriptions, name, env, pathSeparator, systemPath);
@@ -238,5 +364,9 @@ function deactivate() {}
 
 module.exports = {
 	activate,
-	deactivate
+	deactivate,
+	cmakeKits,
+	mergeKits,
+	removeKits,
+	updateKitsFile
 }

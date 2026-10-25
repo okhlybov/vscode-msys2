@@ -12,6 +12,8 @@
 
 - Cygwin build kits no longer fail on MPI tools
 
+- CMake Kits injection & removal commands for the user-local and per-project configurations
+
 - Regression test suite
 
 - Documentation fixes

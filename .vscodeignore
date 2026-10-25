@@ -1,5 +1,9 @@
 .vscode/**
 test/**
+CMakeLists.txt
+CMakePresets.json
+CMakeUserPresets.json
+build/**
 .gitignore
 .gitattributes
 .yarnrc
