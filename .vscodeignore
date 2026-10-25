@@ -1,4 +1,5 @@
 .vscode/**
+.zcode/**
 test/**
 CMakeLists.txt
 CMakePresets.json

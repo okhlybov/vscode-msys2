@@ -53,6 +53,26 @@
         "command": "msys2.kits.remove.project",
         "title": "Remove CMake Kits from the Project",
         "category": "MSYS2"
+      },
+      {
+        "command": "msys2.presets.inject.user",
+        "title": "Inject CMake Presets into User Presets File",
+        "category": "MSYS2"
+      },
+      {
+        "command": "msys2.presets.remove.user",
+        "title": "Remove CMake Presets from User Presets File",
+        "category": "MSYS2"
+      },
+      {
+        "command": "msys2.presets.inject.project",
+        "title": "Inject CMake Presets into Project Presets File",
+        "category": "MSYS2"
+      },
+      {
+        "command": "msys2.presets.remove.project",
+        "title": "Remove CMake Presets from Project Presets File",
+        "category": "MSYS2"
       }
     ],
     "configuration": {
@@ -92,6 +112,11 @@
           "type": "string",
           "default": null,
           "description": "Path to 64-bit MinGW root directory; if not specified, it will be set according to {mingw64.provider} setting"
+        },
+        "msys2.presets.generator": {
+          "type": "string",
+          "default": "Ninja",
+          "description": "CMake generator used by the injected CMake Presets [Ninja, Ninja Multi-Config, MinGW Makefiles, Unix Makefiles]"
         }
       }
     }

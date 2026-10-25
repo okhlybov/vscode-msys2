@@ -1,5 +1,6 @@
 node_modules/
 .vscode-test/
 .vscode/c_cpp_properties.json
+.zcode/
 *.vsix
 *.tgz

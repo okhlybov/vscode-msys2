@@ -300,6 +300,24 @@ Alternatively, the kits can be configured manually: issue the command **`Ctrl+Sh
 
 **Note** that the above configuration command is only available when the CMakeTools extension is active, e.g. when a CMake project is open. Also, there is `cmake.useCMakePresets` option what might interfere with the availability of this knob: a project can be in either kits or presets mode, where the kits controls are absent.
 
+#### CMake Presets
+
+For the projects using the CMake presets instead of the CMake Kits, the extension automates the presets management in the same fashion with the following commands available via the command palette (**`Ctrl+Shift+P`**):
+
+- **MSYS2: Inject CMake Presets into User Presets File**
+
+- **MSYS2: Remove CMake Presets from User Presets File**
+
+- **MSYS2: Inject CMake Presets into Project Presets File**
+
+- **MSYS2: Remove CMake Presets from Project Presets File**
+
+Unlike the CMake Kits descriptors, the CMake presets support no command substitution, hence the injected presets carry the toolchain paths resolved at the injection time. This makes the per-user `CMakeUserPresets.json` descriptor the natural target as it is intended to hold the machine-specific configurations; the shared `CMakePresets.json` descriptor is supported as well for the uniformly configured environments. Note that there is no sitewide CMake presets descriptor.
+
+Each of the eight supported toolchains gets a configure preset accompanied by a matching build preset, both named after the toolchain (`ucrt64`, for example). The generator used by the presets is controlled by the `msys2.presets.generator` configuration setting which defaults to `Ninja`. After changing it or any of the toolchain root settings, re-run the inject command to refresh the resolved paths.
+
+The ownership of the managed entries is recorded in the descriptors' `vendor` field; the remove commands strip both the recorded entries and the legacy same-named ones while keeping any third-party presets intact.
+
 #### CppTools integration
 
 ***Note*** that the CppTools extension is currently available at [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) only meaning no out-of-the-box support for alternative VS Code builds such as VSCodium.

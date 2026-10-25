@@ -78,10 +78,11 @@ const set = overrides => {
 };
 
 test('registers the complete command set', () => {
-	assert.equal(mock.registered.size, 128);
+	assert.equal(mock.registered.size, 132);
 	// Every command disposable is deferred to the extension subscriptions
 	assert.equal(mock.subscriptions.length, mock.registered.size);
-	for(const cmd of ['msys2.kits.inject.user', 'msys2.kits.remove.user', 'msys2.kits.inject.project', 'msys2.kits.remove.project']) {
+	for(const cmd of ['msys2.kits.inject.user', 'msys2.kits.remove.user', 'msys2.kits.inject.project', 'msys2.kits.remove.project',
+		'msys2.presets.inject.user', 'msys2.presets.remove.user', 'msys2.presets.inject.project', 'msys2.presets.remove.project']) {
 		assert.ok(mock.registered.has(cmd), cmd);
 	}
 	for(const env of ['msys2', 'cygwin32', 'cygwin64', 'mingw32', 'mingw64', 'clang32', 'clang64', 'ucrt64']) {
@@ -255,6 +256,112 @@ test('kits descriptor round-trip via inject and remove', async () => {
 		assert.equal((await mock.extension.updateKitsFile(file, false)).count, 8);
 		kits = JSON.parse(fs.readFileSync(file, 'utf8'));
 		assert.deepEqual(kits.map(kit => kit.name), ['Custom']);
+	} finally {
+		fs.rmSync(dir, {recursive: true, force: true});
+	}
+});
+
+test('managed CMake Presets match the toolchain environments', async () => {
+	set({});
+	const presets = await mock.extension.cmakePresets();
+	const names = ['mingw32', 'mingw64', 'ucrt64', 'clang32', 'clang64', 'msys2', 'cygwin32', 'cygwin64'];
+	assert.equal(presets.version, 3);
+	assert.deepEqual(presets.configurePresets.map(preset => preset.name), names);
+	assert.deepEqual(presets.buildPresets.map(preset => preset.name), names);
+	assert.deepEqual(presets.vendor['fougas.msys2'].presets, names);
+	assert.ok(!JSON.stringify(presets).includes('${command:'), 'paths must be baked, not command substitutions');
+	const ucrt = presets.configurePresets.find(preset => preset.name == 'ucrt64');
+	assert.equal(ucrt.displayName, 'UCRT64');
+	assert.equal(ucrt.generator, 'Ninja');
+	assert.equal(ucrt.binaryDir, '${sourceDir}/build/ucrt64');
+	assert.equal(ucrt.cacheVariables.CMAKE_C_COMPILER, 'c:/msys64/ucrt64/bin/gcc.exe');
+	assert.equal(ucrt.cacheVariables.CMAKE_MAKE_PROGRAM, 'c:/msys64/ucrt64/bin/ninja.exe');
+	assert.equal(ucrt.cacheVariables.MPI_C_COMPILER, 'c:/msys64/ucrt64/bin/mpicc.exe');
+	assert.ok(ucrt.environment.PATH.startsWith(`c:/msys64/ucrt64/bin${pathSeparator}`));
+	const msys = presets.configurePresets.find(preset => preset.name == 'msys2');
+	assert.equal(msys.cacheVariables.MPI_C_COMPILER, undefined); // no MPI under the POSIX-like environments
+	assert.equal(msys.cacheVariables.CMAKE_MAKE_PROGRAM, 'c:/msys64/usr/bin/ninja.exe');
+	assert.equal(presets.buildPresets.find(preset => preset.name == 'mingw64').configurePreset, 'mingw64');
+});
+
+test('presets generator follows the msys2.presets.generator setting', async () => {
+	set({'msys2.presets.generator': 'MinGW Makefiles'});
+	let presets = await mock.extension.cmakePresets();
+	let mingw = presets.configurePresets.find(preset => preset.name == 'mingw32');
+	assert.equal(mingw.generator, 'MinGW Makefiles');
+	assert.equal(mingw.cacheVariables.CMAKE_MAKE_PROGRAM, 'c:/msys64/mingw32/bin/mingw32-make.exe');
+	let msys = presets.configurePresets.find(preset => preset.name == 'msys2');
+	assert.equal(msys.cacheVariables.CMAKE_MAKE_PROGRAM, 'c:/msys64/usr/bin/make.exe');
+	set({'msys2.presets.generator': 'Ninja Multi-Config'});
+	presets = await mock.extension.cmakePresets();
+	mingw = presets.configurePresets.find(preset => preset.name == 'mingw32');
+	assert.equal(mingw.generator, 'Ninja Multi-Config');
+	assert.equal(mingw.cacheVariables.CMAKE_MAKE_PROGRAM, 'c:/msys64/mingw32/bin/ninja.exe');
+});
+
+test('merging presets preserves foreign entries and root fields', async () => {
+	set({});
+	const foreignConfigure = {name: 'custom', generator: 'Ninja', binaryDir: '${sourceDir}/build/custom'};
+	const foreignBuild = {name: 'custom', configurePreset: 'custom'};
+	const existing = {
+		version: 6,
+		configurePresets: [foreignConfigure, {name: 'ucrt64', generator: 'Legacy'}],
+		buildPresets: [foreignBuild, {name: 'ucrt64', configurePreset: 'ucrt64'}],
+		testPresets: [{name: 'custom', configurePreset: 'custom'}],
+		cmakeMinimumRequired: '3.23'
+	};
+	const merged = mock.extension.mergePresets(existing, await mock.extension.cmakePresets());
+	assert.equal(merged.version, 6); // preserved, not downgraded
+	assert.equal(merged.configurePresets.length, 9); // foreign + 8 managed
+	assert.equal(merged.configurePresets[0], foreignConfigure); // same reference, not a rebuilt copy
+	assert.equal(merged.buildPresets[0], foreignBuild);
+	assert.equal(merged.testPresets, existing.testPresets); // foreign root field untouched
+	assert.equal(merged.cmakeMinimumRequired, '3.23');
+	assert.equal(merged.configurePresets.filter(preset => preset.name == 'ucrt64').length, 1); // the legacy entry is replaced
+	assert.equal(merged.vendor['fougas.msys2'].presets.length, 8);
+});
+
+test('preset removal strips the managed and vendor-recorded entries only', () => {
+	const existing = {
+		version: 3,
+		configurePresets: [
+			{name: 'custom'},
+			{name: 'ucrt64'}, // legacy same-named entry
+			{name: 'recorded'} // vendor-recorded entry outside the canonical set
+		],
+		buildPresets: [{name: 'custom'}, {name: 'mingw64'}],
+		vendor: {'fougas.msys2': {presets: ['recorded']}}
+	};
+	const remaining = mock.extension.removePresets(existing);
+	assert.deepEqual(remaining.configurePresets.map(preset => preset.name), ['custom']);
+	assert.deepEqual(remaining.buildPresets.map(preset => preset.name), ['custom']);
+	assert.equal(remaining.vendor['fougas.msys2'], undefined);
+});
+
+test('presets descriptor round-trip via inject and remove', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'msys2-presets-'));
+	try {
+		const file = path.join(dir, 'CMakeUserPresets.json');
+		assert.equal((await mock.extension.updatePresetsFile(file, true)).count, 8);
+		let doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+		assert.equal(doc.version, 3);
+		assert.equal(doc.configurePresets.length, 8);
+		assert.equal(doc.buildPresets.length, 8);
+		doc.configurePresets.push({name: 'custom'});
+		doc.buildPresets.push({name: 'custom'});
+		doc.version = 4;
+		fs.writeFileSync(file, JSON.stringify(doc));
+		assert.equal((await mock.extension.updatePresetsFile(file, true)).count, 8); // idempotent re-inject
+		doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+		assert.equal(doc.version, 4); // preserved
+		assert.equal(doc.configurePresets.length, 9); // the foreign preset survives
+		assert.equal((await mock.extension.updatePresetsFile(file, false)).count, 16); // 8 configure + 8 build removed
+		doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+		assert.deepEqual(doc.configurePresets.map(preset => preset.name), ['custom']);
+		assert.deepEqual(doc.buildPresets.map(preset => preset.name), ['custom']);
+		const missing = path.join(dir, 'sub', 'CMakeUserPresets.json');
+		assert.equal((await mock.extension.updatePresetsFile(missing, false)).count, 0); // removal of a missing descriptor is a no-op
+		assert.equal(fs.existsSync(missing), false);
 	} finally {
 		fs.rmSync(dir, {recursive: true, force: true});
 	}

@@ -322,22 +322,133 @@ function projectKitsFile() {
 
 // Register the commands injecting and removing the extension-managed CMake Kits
 function registerKitsCommands(subscriptions) {
-	const update = async (file, inject) => {
-		if(!file) {
-			vscode.window.showErrorMessage('MSYS2: no workspace folder is open');
-			return;
+	registerCommand(subscriptions, 'msys2.kits.inject.user', () => runDescriptorUpdate(userKitsFile(), true, updateKitsFile, 'CMake Kits'));
+	registerCommand(subscriptions, 'msys2.kits.remove.user', () => runDescriptorUpdate(userKitsFile(), false, updateKitsFile, 'CMake Kits'));
+	registerCommand(subscriptions, 'msys2.kits.inject.project', () => runDescriptorUpdate(projectKitsFile(), true, updateKitsFile, 'CMake Kits'));
+	registerCommand(subscriptions, 'msys2.kits.remove.project', () => runDescriptorUpdate(projectKitsFile(), false, updateKitsFile, 'CMake Kits'));
+}
+
+// Names of the CMake presets owned by this extension: the canonical ones plus those recorded in the vendor field of the descriptor
+function managedPresetNames(existing) {
+	const recorded = (existing.vendor && existing.vendor[kitsManager] && existing.vendor[kitsManager].presets) || [];
+	return new Set([...kitOrder, ...recorded]);
+}
+
+// Compose the extension-managed CMake Presets with the toolchain paths resolved to their current values
+async function cmakePresets() {
+	const generator = vscode.workspace.getConfiguration().get('msys2.presets.generator') || 'Ninja';
+	const makeTool = /Ninja/i.test(generator) ? 'ninja' : 'make';
+	const configurePresets = [], buildPresets = [];
+	for(const name of kitOrder) {
+		const env = environments[name];
+		const cacheVariables = {
+			CMAKE_C_COMPILER: await vscode.commands.executeCommand(`${name}.cc.exe`),
+			CMAKE_CXX_COMPILER: await vscode.commands.executeCommand(`${name}.cxx.exe`),
+			CMAKE_Fortran_COMPILER: await vscode.commands.executeCommand(`${name}.fc.exe`),
+			CMAKE_MAKE_PROGRAM: await vscode.commands.executeCommand(`${name}.${makeTool}.exe`)
+		};
+		if(env.kitMPI) {
+			cacheVariables.MPI_C_COMPILER = await vscode.commands.executeCommand(`${name}.mpicc.exe`);
+			cacheVariables.MPI_CXX_COMPILER = await vscode.commands.executeCommand(`${name}.mpicxx.exe`);
+			cacheVariables.MPI_Fortran_COMPILER = await vscode.commands.executeCommand(`${name}.mpifort.exe`);
 		}
-		try {
-			const res = await updateKitsFile(file, inject);
-			vscode.window.showInformationMessage(`MSYS2: ${res.count} CMake Kits ${inject ? 'written to' : 'removed from'} ${res.file}`);
-		} catch(err) {
-			vscode.window.showErrorMessage(`MSYS2: ${err.message}`);
-		}
+		configurePresets.push({
+			displayName: env.kit,
+			name,
+			generator,
+			binaryDir: `\${sourceDir}/build/${name}`,
+			environment: {PATH: await vscode.commands.executeCommand(`${name}.path`)},
+			cacheVariables
+		});
+		buildPresets.push({displayName: env.kit, name, configurePreset: name});
+	}
+	return {
+		version: 3,
+		configurePresets,
+		buildPresets,
+		vendor: {[kitsManager]: {presets: kitOrder.slice()}}
 	};
-	registerCommand(subscriptions, 'msys2.kits.inject.user', () => update(userKitsFile(), true));
-	registerCommand(subscriptions, 'msys2.kits.remove.user', () => update(userKitsFile(), false));
-	registerCommand(subscriptions, 'msys2.kits.inject.project', () => update(projectKitsFile(), true));
-	registerCommand(subscriptions, 'msys2.kits.remove.project', () => update(projectKitsFile(), false));
+}
+
+// Merge the extension-managed presets into the existing descriptor, replacing the same-named entries and keeping the foreign ones intact
+function mergePresets(existing, injected) {
+	const managed = managedPresetNames(existing);
+	const merged = {...existing};
+	merged.version = existing.version || injected.version;
+	merged.configurePresets = [...(existing.configurePresets || []).filter(preset => !managed.has(preset.name)), ...injected.configurePresets];
+	merged.buildPresets = [...(existing.buildPresets || []).filter(preset => !managed.has(preset.name)), ...injected.buildPresets];
+	merged.vendor = {...existing.vendor, ...injected.vendor};
+	return merged;
+}
+
+// Strip the extension-managed presets from the existing descriptor keeping the foreign ones intact
+function removePresets(existing) {
+	const managed = managedPresetNames(existing);
+	const removed = {...existing};
+	removed.configurePresets = (existing.configurePresets || []).filter(preset => !managed.has(preset.name));
+	removed.buildPresets = (existing.buildPresets || []).filter(preset => !managed.has(preset.name));
+	if(existing.vendor) {
+		removed.vendor = {...existing.vendor};
+		delete removed.vendor[kitsManager];
+	}
+	return removed;
+}
+
+// Inject or remove the extension-managed presets in a CMakePresets.json/CMakeUserPresets.json descriptor, creating it as needed
+async function updatePresetsFile(file, inject) {
+	let existing = null;
+	try {
+		const text = await fs.readFile(file, 'utf8');
+		if(text.trim()) existing = JSON.parse(text);
+	} catch(err) {
+		if(err.code != 'ENOENT') throw new Error(`cannot parse ${file}: ${err.message}`);
+	}
+	if(!existing && !inject) return {file, count: 0}; // nothing to remove, keep the missing descriptor as is
+	const updated = inject ? mergePresets(existing || {}, await cmakePresets()) : removePresets(existing);
+	await fs.mkdir(path.dirname(file), {recursive: true});
+	await fs.writeFile(file, JSON.stringify(updated, null, 2) + '\n');
+	const count = inject ? kitOrder.length
+		: (existing.configurePresets || []).length - updated.configurePresets.length
+			+ (existing.buildPresets || []).length - updated.buildPresets.length;
+	return {file, count};
+}
+
+// Location of a CMake presets descriptor of the primary workspace folder
+function workspacePresetsFile(name) {
+	const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+	return folder ? path.join(folder.uri.fsPath, name) : null;
+}
+
+// Location of the per-project CMakeUserPresets.json descriptor
+function userPresetsFile() {
+	return workspacePresetsFile('CMakeUserPresets.json');
+}
+
+// Location of the per-project CMakePresets.json descriptor
+function projectPresetsFile() {
+	return workspacePresetsFile('CMakePresets.json');
+}
+
+// Register the commands injecting and removing the extension-managed CMake Presets
+function registerPresetsCommands(subscriptions) {
+	registerCommand(subscriptions, 'msys2.presets.inject.user', () => runDescriptorUpdate(userPresetsFile(), true, updatePresetsFile, 'CMake Presets'));
+	registerCommand(subscriptions, 'msys2.presets.remove.user', () => runDescriptorUpdate(userPresetsFile(), false, updatePresetsFile, 'CMake Presets'));
+	registerCommand(subscriptions, 'msys2.presets.inject.project', () => runDescriptorUpdate(projectPresetsFile(), true, updatePresetsFile, 'CMake Presets'));
+	registerCommand(subscriptions, 'msys2.presets.remove.project', () => runDescriptorUpdate(projectPresetsFile(), false, updatePresetsFile, 'CMake Presets'));
+}
+
+// Apply a kits/presets descriptor update with user-facing notification
+async function runDescriptorUpdate(file, inject, update, what) {
+	if(!file) {
+		vscode.window.showErrorMessage('MSYS2: no workspace folder is open');
+		return;
+	}
+	try {
+		const res = await update(file, inject);
+		vscode.window.showInformationMessage(`MSYS2: ${res.count} ${what} ${inject ? 'written to' : 'removed from'} ${res.file}`);
+	} catch(err) {
+		vscode.window.showErrorMessage(`MSYS2: ${err.message}`);
+	}
 }
 
 function activate(context) {
@@ -349,6 +460,7 @@ function activate(context) {
 
 	registerBuildKitCommands(context.subscriptions, pathSeparator, systemPath);
 	registerKitsCommands(context.subscriptions);
+	registerPresetsCommands(context.subscriptions);
 
 	for(const [name, env] of Object.entries(environments)) {
 		registerEnvironment(context.subscriptions, name, env, pathSeparator, systemPath);
@@ -368,5 +480,9 @@ module.exports = {
 	cmakeKits,
 	mergeKits,
 	removeKits,
-	updateKitsFile
+	updateKitsFile,
+	cmakePresets,
+	mergePresets,
+	removePresets,
+	updatePresetsFile
 }

@@ -14,6 +14,8 @@
 
 - CMake Kits injection & removal commands for the user-local and per-project configurations
 
+- CMake Presets injection & removal commands for the per-user and shared project descriptors
+
 - Regression test suite
 
 - Documentation fixes
