@@ -29,6 +29,9 @@ class MockVSCode {
 		this.kitName = null;
 		this.cmakeToolsInstalled = true;
 		this.launchTargetDirectory = 'T:/target';
+		this.openDialogOptions = null;
+		this.openDialogResult = null;
+		this.panels = [];
 	}
 
 	commands = {
@@ -49,6 +52,35 @@ class MockVSCode {
 	};
 
 	env = {appName: 'Visual Studio Code'};
+
+	Uri = {file: p => ({fsPath: p})};
+
+	ViewColumn = {Active: 1};
+
+	window = {
+		showOpenDialog: async options => {
+			this.openDialogOptions = options;
+			return this.openDialogResult;
+		},
+		showInformationMessage: async () => {},
+		showErrorMessage: async () => {},
+		createWebviewPanel: () => {
+			const panel = {
+				postings: [],
+				handlers: [],
+				onDidDispose() {},
+				reveal() {},
+				webview: {
+					cspSource: 'https://test.csp',
+					html: '',
+					onDidReceiveMessage: handler => panel.handlers.push(handler),
+					postMessage: async message => panel.postings.push(message)
+				}
+			};
+			this.panels.push(panel);
+			return panel;
+		}
+	};
 
 	workspace = {
 		workspaceFolders: null,
@@ -413,6 +445,7 @@ test('dashboard model summarizes environments and descriptors', async () => {
 		const model = await mock.extension.dashboardModel();
 		assert.equal(model.environments.length, 8);
 		assert.ok(model.version);
+		assert.ok(!('app' in model)); // the host application name is not a part of the model
 		assert.equal(model.settings['msys2.presets.generator'], 'Ninja');
 		const msysRow = model.environments.find(row => row.name == 'msys2');
 		assert.equal(msysRow.exists, true); // the fake root is on disk
@@ -429,10 +462,51 @@ test('dashboard model summarizes environments and descriptors', async () => {
 		const refreshed = await mock.extension.dashboardModel();
 		assert.deepEqual(refreshed.kits.project, {file: model.kits.project.file, exists: true, managed: 8, foreign: 0});
 		assert.deepEqual(refreshed.presets.user, {file: model.presets.user.file, exists: true, managed: 16, foreign: 0});
+		// the set roots are validated against the disk: the existing one passes, the unset ones are not flagged
+		assert.equal(refreshed.settingsValidity['msys2.root'], true);
+		assert.ok(!('mingw32.root' in refreshed.settingsValidity));
 	} finally {
 		mock.workspace.workspaceFolders = null;
 		fs.rmSync(dir, {recursive: true, force: true});
 	}
+});
+
+test('dashboard root settings get working directory pickers', async () => {
+	set({});
+	await run('msys2.dashboard');
+	const panel = mock.panels[0];
+	assert.equal(panel.handlers.length, 1);
+	const onMessage = panel.handlers[0];
+	// a cancelled dialog posts nothing back
+	mock.openDialogResult = null;
+	await onMessage({type: 'pickDirectory', setting: 'msys2.root'});
+	assert.equal(panel.postings.length, 0);
+	// a picked directory is posted back to the field, with the dialog anchored at the current value
+	mock.openDialogResult = [{fsPath: 'D:/msys2-root'}];
+	await onMessage({type: 'pickDirectory', setting: 'msys2.root'});
+	assert.deepEqual(mock.openDialogOptions, {
+		canSelectFiles: false,
+		canSelectFolders: true,
+		canSelectMany: false,
+		defaultUri: {fsPath: 'c:\\msys64'}
+	});
+	assert.deepEqual(panel.postings, [{type: 'picked', setting: 'msys2.root', path: 'D:/msys2-root'}]);
+	// unset settings open the dialog with no default location
+	mock.openDialogResult = null;
+	await onMessage({type: 'pickDirectory', setting: 'mingw32.root'});
+	assert.equal(mock.openDialogOptions.defaultUri, undefined);
+	// non-directory settings get no picker
+	await onMessage({type: 'pickDirectory', setting: 'mingw32.provider'});
+	assert.equal(panel.postings.length, 1);
+	// unknown settings get no picker either
+	await onMessage({type: 'pickDirectory', setting: 'bogus.setting'});
+	assert.equal(panel.postings.length, 1);
+});
+
+test('dashboard flags the settings roots missing on disk', async () => {
+	set({'msys2.root': 'Q:/no/such/dir'});
+	const model = await mock.extension.dashboardModel();
+	assert.equal(model.settingsValidity['msys2.root'], false);
 });
 
 test('dashboard HTML embeds the model behind a strict CSP', async () => {
@@ -450,6 +524,24 @@ test('dashboard HTML embeds the model behind a strict CSP', async () => {
 	}
 	// the settings form is driven by the embedded metadata
 	assert.ok(html.includes('data-setting='));
+	// the settings are laid out in two purpose-separated columns driven by the embedded metadata
+	assert.ok(html.includes('"settingsGroups":{"locations":"Locations","selections":"Selections"}'));
+	assert.ok(html.includes('.group { display: grid'));
+	// the text entries and the dropdowns share the same rendered width
+	assert.ok(html.includes('width: 100%; box-sizing: border-box'));
+	// the dir-kind settings carry directory picker buttons wired to the host dialog
+	assert.ok(html.includes('data-pick='));
+	assert.ok(html.includes("'pickDirectory'"));
+	assert.ok(html.includes("'picked'"));
+	// the descriptor rows render as a single grid keeping the action buttons column-aligned
+	assert.ok(html.includes('id="descriptors"'));
+	assert.ok(html.includes('.descriptors { display: grid'));
+	assert.ok(!html.includes("el('kits')") && !html.includes("el('presets')"));
 	// a missing descriptor path renders as an em-dash entity rather than getting escaped into literal text
 	assert.ok(html.includes(`descriptor.file ? esc(descriptor.file) : '&#8212;'`));
+	// the header carries no host application name
+	assert.ok(!html.includes('id="app"'));
+	// the missing root directories are highlighted and a picked directory clears the highlight
+	assert.ok(html.includes('input.invalid'));
+	assert.ok(html.includes("classList.remove('invalid')"));
 });

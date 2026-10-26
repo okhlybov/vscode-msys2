@@ -28,7 +28,7 @@ The extension provides a GUI dashboard invoked via **`Ctrl+Shift+P` |> MSYS2: Op
 
 - An overview of the eight supported toolchain environments with their resolved locations and on-disk existence checks for the directories and the C/C++ compilers, make tools and Ninja
 
-- Editing of the extension settings (the toolchain roots, the MinGW providers and the CMake Presets generator); an emptied root field reverts the setting to its provider-derived default, and the values are stored in the per user settings
+- Editing of the extension settings (the toolchain roots, the MinGW providers and the CMake Presets generator); the toolchain root fields come with directory pickers; an emptied root field reverts the setting to its provider-derived default, and the values are stored in the per user settings
 
 - Injecting and removing the extension-managed CMake Kits and CMake Presets in the same fashion as the respective commands do
 

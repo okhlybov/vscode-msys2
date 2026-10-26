@@ -4,8 +4,6 @@
 
 - VS Code required version bump to 1.74.0
 
-- Code deduplication: table-driven toolchain registry
-
 - Fixed launch PATH degradation without a recognized build kit
 
 - Unrecognized CMake generator and MinGW provider fall back to sane defaults
@@ -15,8 +13,6 @@
 - CMake Kits injection & removal commands for the user-local and per-project configurations
 
 - CMake Presets injection & removal commands for the per-user and shared project descriptors
-
-- Extension management dashboard
 
 - Regression test suite
 

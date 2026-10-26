@@ -465,17 +465,23 @@ async function runDescriptorUpdate(file, inject, update, what) {
 	}
 }
 
-// Settings manageable via the dashboard
+// Settings manageable via the dashboard; the dir-kind ones get directory pickers, grouped by purpose in two columns
 const dashboardSettings = [
-	{name: 'msys2.root', kind: 'text'},
-	{name: 'cygwin32.root', kind: 'text'},
-	{name: 'cygwin64.root', kind: 'text'},
-	{name: 'mingw32.root', kind: 'text'},
-	{name: 'mingw32.provider', kind: 'select', options: ['msys2', 'cygwin32', 'cygwin64']},
-	{name: 'mingw64.root', kind: 'text'},
-	{name: 'mingw64.provider', kind: 'select', options: ['msys2', 'cygwin32', 'cygwin64']},
-	{name: 'msys2.presets.generator', kind: 'select', options: ['Ninja', 'Ninja Multi-Config', 'MinGW Makefiles', 'Unix Makefiles']}
+	{name: 'msys2.root', kind: 'dir', group: 'locations'},
+	{name: 'cygwin32.root', kind: 'dir', group: 'locations'},
+	{name: 'cygwin64.root', kind: 'dir', group: 'locations'},
+	{name: 'mingw32.root', kind: 'dir', group: 'locations'},
+	{name: 'mingw64.root', kind: 'dir', group: 'locations'},
+	{name: 'mingw32.provider', kind: 'select', options: ['msys2', 'cygwin32', 'cygwin64'], group: 'selections'},
+	{name: 'mingw64.provider', kind: 'select', options: ['msys2', 'cygwin32', 'cygwin64'], group: 'selections'},
+	{name: 'msys2.presets.generator', kind: 'select', options: ['Ninja', 'Ninja Multi-Config', 'MinGW Makefiles', 'Unix Makefiles'], group: 'selections'}
 ];
+
+// Captions of the settings groups
+const dashboardSettingGroups = {
+	locations: 'Locations',
+	selections: 'Selections'
+};
 
 // Dashboard action targets
 const dashboardTargets = {
@@ -528,6 +534,11 @@ async function dashboardModel() {
 	const config = vscode.workspace.getConfiguration();
 	const settings = {};
 	for(const setting of dashboardSettings) settings[setting.name] = config.get(setting.name);
+	// the set dir-kind settings are checked for existence so that the missing ones can be highlighted
+	const validity = {};
+	for(const setting of dashboardSettings) {
+		if(setting.kind == 'dir' && settings[setting.name]) validity[setting.name] = await pathExists(settings[setting.name]);
+	}
 	const rows = [];
 	for(const name of kitOrder) {
 		const root = await vscode.commands.executeCommand(`${name}.root`);
@@ -539,10 +550,11 @@ async function dashboardModel() {
 		rows.push({name, kit: environments[name].kit, root, bin: await vscode.commands.executeCommand(`${name}.bin`), exists: await pathExists(root), tools});
 	}
 	return {
-		app: vscode.env.appName,
 		version: pkg.version,
 		settings,
 		settingsMeta: dashboardSettings,
+		settingsGroups: dashboardSettingGroups,
+		settingsValidity: validity,
 		environments: rows,
 		kits: {user: await kitsSummary(userKitsFile()), project: await kitsSummary(projectKitsFile())},
 		presets: {user: await presetsSummary(userPresetsFile()), project: await presetsSummary(projectPresetsFile())}
@@ -573,30 +585,37 @@ code { font-family: var(--vscode-editor-font-family, monospace); font-size: 11px
 button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 2px; padding: 3px 10px; cursor: pointer; font-size: 12px; margin: 1px 2px 1px 0; }
 button:hover { background: var(--vscode-button-hoverBackground); }
 button:disabled { opacity: .5; cursor: default; }
-input, select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); border-radius: 2px; padding: 2px 4px; width: 300px; font-size: 12px; font-family: var(--vscode-editor-font-family, monospace); }
-.grid { display: grid; grid-template-columns: max-content 320px; gap: 6px 14px; align-items: center; }
+input, select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, transparent); border-radius: 2px; padding: 2px 4px; width: 100%; box-sizing: border-box; font-size: 12px; font-family: var(--vscode-editor-font-family, monospace); }
+.field { display: flex; gap: 4px; align-items: center; }
+.field input { flex: 1; width: auto; min-width: 0; }
+.field button { margin: 0; }
+input.invalid { border-color: rgba(248,81,73,.8); background: rgba(248,81,73,.12); }
+.settings { display: flex; gap: 14px 28px; align-items: start; flex-wrap: wrap; }
+.group { display: grid; grid-template-columns: max-content 320px; gap: 6px 14px; align-items: center; }
+.caption { grid-column: 1 / -1; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; opacity: .75; padding-bottom: 2px; }
 .row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.descriptors { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content max-content max-content; gap: 6px 10px; align-items: center; }
+.descriptors h2 { grid-column: 1 / -1; margin-bottom: 0; }
+.descriptors button { margin: 0; }
 .muted { opacity: .7; }
 </style>
 </head>
 <body>
 <header>
 <h1>MSYS2 Dashboard</h1>
-<span id="app" class="muted"></span>
 <span id="version" class="muted"></span>
 <button id="refresh" title="Re-resolve the toolchains and descriptors">Refresh</button>
 </header>
 <section>
 <h2>Settings</h2>
-<div id="settings" class="grid"></div>
+<div id="settings" class="settings"></div>
 <div class="row" style="margin-top:8px">
 <button id="save">Save Settings</button>
 <span class="muted">An emptied root reverts to the provider-derived location; values are stored in the user settings.</span>
 </div>
 </section>
 <section><h2>Toolchain Environments</h2><div id="environments"></div></section>
-<section><h2>CMake Kits</h2><div id="kits"></div></section>
-<section><h2>CMake Presets</h2><div id="presets"></div></section>
+<section id="descriptors" class="descriptors"></section>
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
 let model = ${json};
@@ -607,19 +626,32 @@ const chip = (exists, text, title) => '<span class="chip ' + (exists ? 'ok' : 'b
 const action = (target, op, label, disabled) => '<button data-target="' + target + '" data-op="' + op + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button>';
 
 function renderSettings() {
-	let html = '';
+	const groups = new Map();
 	for(const meta of model.settingsMeta) {
-		const value = model.settings[meta.name];
-		const id = 'set-' + esc(meta.name);
-		html += '<label for="' + id + '">' + esc(meta.name) + '</label>';
-		if(meta.kind == 'select') {
-			html += '<select id="' + id + '" data-setting="' + esc(meta.name) + '">';
-			for(const option of meta.options) html += '<option value="' + esc(option) + '"' + (option == value ? ' selected' : '') + '>' + esc(option) + '</option>';
-			html += '</select>';
+		if(!groups.has(meta.group)) groups.set(meta.group, []);
+		groups.get(meta.group).push(meta);
+	}
+	let html = '';
+	for(const [group, metas] of groups) {
+		html += '<div class="group"><div class="caption">' + esc((model.settingsGroups || {})[group] || group) + '</div>';
+		for(const meta of metas) {
+			const value = model.settings[meta.name];
+			const id = 'set-' + esc(meta.name);
+			html += '<label for="' + id + '">' + esc(meta.name) + '</label>';
+			if(meta.kind == 'select') {
+				html += '<select id="' + id + '" data-setting="' + esc(meta.name) + '">';
+				for(const option of meta.options) html += '<option value="' + esc(option) + '"' + (option == value ? ' selected' : '') + '>' + esc(option) + '</option>';
+				html += '</select>';
+			}
+			else {
+				const invalid = model.settingsValidity && model.settingsValidity[meta.name] === false;
+				const input = '<input id="' + id + '" data-setting="' + esc(meta.name) + '" value="' + esc(value == null ? '' : value) + '" placeholder="&lt;unset&gt;"'
+					+ (invalid ? ' class="invalid" title="The directory does not exist on disk"' : '') + '>';
+				// the dir-kind entries are augmented with a directory picker button
+				html += meta.kind == 'dir' ? '<span class="field">' + input + '<button data-pick="' + esc(meta.name) + '" title="Select the directory on disk">Browse…</button></span>' : input;
+			}
 		}
-		else {
-			html += '<input id="' + id + '" data-setting="' + esc(meta.name) + '" value="' + esc(value == null ? '' : value) + '" placeholder="&lt;unset&gt;">';
-		}
+		html += '</div>';
 	}
 	el('settings').innerHTML = html;
 }
@@ -633,25 +665,35 @@ function renderEnvironments() {
 	el('environments').innerHTML = html + '</table>';
 }
 
+// Compose the grid cells of a single descriptors row: the title, the path, the state and the inject/remove actions
 function descriptorRow(title, descriptor, target) {
 	const state = descriptor.file ? (descriptor.exists ? descriptor.managed + ' managed, ' + descriptor.foreign + ' foreign' : 'missing') : 'no workspace folder';
-	return '<div class="row"><b style="min-width:90px;display:inline-block">' + title + '</b>'
-		+ '<code>' + (descriptor.file ? esc(descriptor.file) : '&#8212;') + '</code>'
+	return '<b>' + esc(title) + '</b>'
+		+ '<code' + (descriptor.file ? ' title="' + esc(descriptor.file) + '"' : '') + '>' + (descriptor.file ? esc(descriptor.file) : '&#8212;') + '</code>'
 		+ '<span class="muted">' + esc(state) + '</span>'
 		+ action(target, 'inject', 'Inject', !descriptor.file)
-		+ action(target, 'remove', 'Remove', !descriptor.file) + '</div>';
+		+ action(target, 'remove', 'Remove', !descriptor.file);
 }
 
 function render() {
-	el('app').textContent = model.app;
 	el('version').textContent = 'v' + model.version;
 	renderSettings();
 	renderEnvironments();
-	el('kits').innerHTML = descriptorRow('User-Local', model.kits.user, 'kits.user') + descriptorRow('Project', model.kits.project, 'kits.project');
-	el('presets').innerHTML = descriptorRow('User', model.presets.user, 'presets.user') + descriptorRow('Project', model.presets.project, 'presets.project');
+	// a single grid keeps the paths, states and action buttons of all the descriptor rows column-aligned
+	el('descriptors').innerHTML = '<h2>CMake Kits</h2>'
+		+ descriptorRow('User-Local', model.kits.user, 'kits.user')
+		+ descriptorRow('Project', model.kits.project, 'kits.project')
+		+ '<h2>CMake Presets</h2>'
+		+ descriptorRow('User', model.presets.user, 'presets.user')
+		+ descriptorRow('Project', model.presets.project, 'presets.project');
 }
 
 document.addEventListener('click', event => {
+	const pick = event.target.closest('button[data-pick]');
+	if(pick) {
+		vscode.postMessage({type: 'pickDirectory', setting: pick.dataset.pick});
+		return;
+	}
 	const button = event.target.closest('button[data-target]');
 	if(button) vscode.postMessage({type: 'action', target: button.dataset.target, op: button.dataset.op});
 });
@@ -665,6 +707,14 @@ window.addEventListener('message', event => {
 	if(event.data && event.data.type == 'model') {
 		model = event.data.model;
 		render();
+	}
+	else if(event.data && event.data.type == 'picked') {
+		const input = document.querySelector('[data-setting="' + event.data.setting + '"]');
+		if(input) {
+			input.value = event.data.path;
+			input.classList.remove('invalid'); // the picked directory exists on disk
+			input.removeAttribute('title');
+		}
 	}
 });
 
@@ -694,6 +744,19 @@ function registerDashboardCommand(subscriptions) {
 				const target = dashboardTargets[message.target];
 				if(target) await runDescriptorUpdate(target.file(), message.op == 'inject', target.update, target.what);
 				await postModel();
+			}
+			else if(message.type == 'pickDirectory') {
+				const meta = dashboardSettings.find(setting => setting.kind == 'dir' && setting.name == message.setting);
+				if(meta) {
+					const current = vscode.workspace.getConfiguration().get(meta.name);
+					const picked = await vscode.window.showOpenDialog({
+						canSelectFiles: false,
+						canSelectFolders: true,
+						canSelectMany: false,
+						defaultUri: current ? vscode.Uri.file(current) : undefined
+					});
+					if(picked && picked.length) await panel.webview.postMessage({type: 'picked', setting: meta.name, path: picked[0].fsPath});
+				}
 			}
 			else if(message.type == 'saveSettings') {
 				const config = vscode.workspace.getConfiguration();
