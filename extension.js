@@ -24,9 +24,18 @@ const kitMatchers = [
 	[/msys2?/i, 'msys2']
 ];
 
+// Execute a VS Code command, resolving to null when its provider is absent, e.g. CMakeTools not installed
+async function executeCommandOrNull(name) {
+	try {
+		return await vscode.commands.executeCommand(name);
+	} catch {
+		return null;
+	}
+}
+
 // Return canonic name of buildkit in effect or null if it is unrecognized
 function BuildKit() {
-	return vscode.commands.executeCommand('cmake.buildKit').then(kit => {
+	return executeCommandOrNull('cmake.buildKit').then(kit => {
 		if(!kit) return null;
 		const match = kitMatchers.find(([pattern]) => pattern.test(kit));
 		return match ? match[1] : null;
@@ -49,7 +58,8 @@ function MinGWProvider(bit) {
 
 // Return executable name of a MinGW tool depending on whether the toolchain is hosted by Cygwin
 function mingwExe(bit, cygwinName, nativeName) {
-	return /cygwin.*/i.test(MinGWProvider(bit)) ? cygwinName : nativeName;
+	const prov = MinGWProvider(bit);
+	return prov && /cygwin/i.test(prov) ? cygwinName : nativeName;
 }
 
 // Return root directory of the MinGW toolchain: the explicit mingw??.root if set, otherwise the one implied by the provider
@@ -217,8 +227,9 @@ function registerBuildKitCommands(subscriptions, pathSeparator, systemPath) {
 	// System-specific value of the PATH environment variable for the launch tasks
 	registerCommand(subscriptions, 'cmake.buildkit.launch.path', function () {
 		return vscode.commands.executeCommand('cmake.buildkit.path').then(path => {
-			return vscode.commands.executeCommand('cmake.getLaunchTargetDirectory').then(targetDir => {
-				return `${targetDir}${pathSeparator}${path || systemPath}`; // without a recognized buildkit, degrade to the plain system PATH
+			return executeCommandOrNull('cmake.getLaunchTargetDirectory').then(targetDir => {
+				const base = targetDir ? `${targetDir}${pathSeparator}` : ''; // no CMakeTools means no launch target directory
+				return `${base}${path || systemPath}`; // without a recognized buildkit, degrade to the plain system PATH
 			});
 		});
 	});
@@ -292,6 +303,7 @@ async function updateKitsFile(file, inject) {
 		if(err.code != 'ENOENT') throw new Error(`cannot parse ${file}: ${err.message}`);
 		existed = false;
 	}
+	if(!Array.isArray(existing)) throw new Error(`cannot parse ${file}: not a JSON array`);
 	const updated = inject ? mergeKits(existing) : removeKits(existing);
 	if(!updated.length && !existed && !inject) return {file, count: 0}; // nothing to remove, keep the missing descriptor as is
 	await fs.mkdir(path.dirname(file), {recursive: true});
@@ -624,7 +636,7 @@ function renderEnvironments() {
 function descriptorRow(title, descriptor, target) {
 	const state = descriptor.file ? (descriptor.exists ? descriptor.managed + ' managed, ' + descriptor.foreign + ' foreign' : 'missing') : 'no workspace folder';
 	return '<div class="row"><b style="min-width:90px;display:inline-block">' + title + '</b>'
-		+ '<code>' + esc(descriptor.file || '&#8212;') + '</code>'
+		+ '<code>' + (descriptor.file ? esc(descriptor.file) : '&#8212;') + '</code>'
 		+ '<span class="muted">' + esc(state) + '</span>'
 		+ action(target, 'inject', 'Inject', !descriptor.file)
 		+ action(target, 'remove', 'Remove', !descriptor.file) + '</div>';

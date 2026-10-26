@@ -40,7 +40,7 @@ This extension is primarily designed to work with the CMakeTools extension altho
 
 The following steps are to be performed in order to configure a minimal usable MSYS2, Cygwin, MinGW/Clang and Visual Studio Code environments.
 
-**Hint** the VS Code canonic `Ctrl+Shift+P` command palette shortcut extensively used below has a very convenient `F1` alias.
+**Hint** the VS Code canonical `Ctrl+Shift+P` command palette shortcut extensively used below has a very convenient `F1` alias.
 
 ### Per user Visual Studio Code extensions
 
@@ -106,7 +106,7 @@ There are three implemented MinGW providers:
 
 - Standalone MinGW
 
-The MinGW selection logics works as follows.
+The MinGW selection logic works as follows.
 If the `mingw??.root` configuration setting is set, it is used to determine the root path to the standalone MinGW installation such as [MinGW-W64](http://mingw-w64.org) or [TDM-GCC](https://jmeubank.github.io/tdm-gcc/).
 Otherwise, the `mingw??.provider` configuration setting is used to determine the MinGW provider. There are four possible values for it: `msys2`, `cygwin32`, `cygwin64` and anything else with `msys2` taken as the default. If it is set to anything but the first three, the selector falls back to the above `mingw??.root` case which itself defaults to the MSYS2-provided toolchain when it is not set.
 32/64-bit MinGW installations are determined separately with the respective configuration settings.
@@ -421,7 +421,7 @@ In order to enable the IntelliSense support which provides the code navigation c
 
 This configuration is set up to work with the CMakeTools extension which provides the toolchain in effect. 
 
-The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are likely to be tailoerd to meet the specific needs, though the default values can be used as a starting point.
+The  `includePath`, `defines`, `*Standard`, `intelliSenseMode` properties are likely to be tailored to meet the specific needs, though the default values can be used as a starting point.
 
 ## MPI support
 
@@ -436,7 +436,7 @@ __Note that the MS-MPI is fully supported by the Visual Studio & Windows-native 
 
 In order to compile & run MPI codes both runtime and SDK packages are required to be installed. The runtime package which can be obtained from the aforementioned location is required by all relevant toolchains (Visual Studio included). As for SDK, Visual Studio consumes the official SDK package which is obtained along with the runtime. On the contrary, the MSYS2-based toolchains require toolchain-specific `msmpi` packages which should be installed manually with Pacman.
 
-__Please note that the CMakeTools configuration above is extended to accomodate new functionality.
+__Please note that the CMakeTools configuration above is extended to accommodate new functionality.
 As a consequence, the per user CMake Kits configuration must be revised.__
 
 ## Troubleshooting

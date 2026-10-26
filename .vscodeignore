@@ -1,13 +1,9 @@
 .vscode/**
 .zcode/**
 test/**
-CMakeLists.txt
-CMakePresets.json
-CMakeUserPresets.json
 build/**
 .gitignore
 .gitattributes
-.yarnrc
 vsc-extension-quickstart.md
 eslint.config.js
 package-lock.json

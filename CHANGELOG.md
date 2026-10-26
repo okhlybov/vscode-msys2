@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.11.0]
+## [0.11.0] 2026-10-26
 
 - VS Code required version bump to 1.74.0
 
@@ -19,6 +19,10 @@
 - Extension management dashboard
 
 - Regression test suite
+
+- The build kit commands degrade gracefully when the CMakeTools extension is not installed
+
+- Non-array CMake Kits descriptors are reported as unparsable instead of failing obscurely
 
 - Documentation fixes
 
@@ -88,7 +92,7 @@
 
 ## [0.3.1] 2021-2-13
 
-- Force all emitted paths to use forward slahes
+- Force all emitted paths to use forward slashes
 
 ## [0.3.0] 2021-2-8
 

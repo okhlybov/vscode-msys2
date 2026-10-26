@@ -27,14 +27,21 @@ class MockVSCode {
 		this.registered = new Map();
 		this.settings = new Map(Object.entries(defaults));
 		this.kitName = null;
+		this.cmakeToolsInstalled = true;
 		this.launchTargetDirectory = 'T:/target';
 	}
 
 	commands = {
 		registerCommand: (name, handler) => this.registered.set(name, handler),
 		executeCommand: async name => {
-			if(name === 'cmake.buildKit') return this.kitName;
-			if(name === 'cmake.getLaunchTargetDirectory') return this.launchTargetDirectory;
+			if(name === 'cmake.buildKit') {
+				if(!this.cmakeToolsInstalled) throw new Error(`command not found: ${name}`);
+				return this.kitName;
+			}
+			if(name === 'cmake.getLaunchTargetDirectory') {
+				if(!this.cmakeToolsInstalled) throw new Error(`command not found: ${name}`);
+				return this.launchTargetDirectory;
+			}
 			const handler = this.registered.get(name);
 			if(!handler) throw new Error(`command not found: ${name}`);
 			return handler();
@@ -78,6 +85,7 @@ const run = name => mock.registered.get(name)();
 const set = overrides => {
 	mock.settings = new Map(Object.entries({...defaults, ...overrides}));
 	mock.kitName = null;
+	mock.cmakeToolsInstalled = true;
 };
 
 test('registers the complete command set', () => {
@@ -175,6 +183,18 @@ test('Cygwin kits expose no MPI tools', async () => {
 	assert.equal(await run('cmake.buildkit.mpicc.exe'), 'mpicc');
 });
 
+test('buildkit commands degrade gracefully without CMakeTools installed', async () => {
+	set({});
+	mock.cmakeToolsInstalled = false;
+	assert.equal(await run('cmake.buildkit.cmake.exe'), 'cmake');
+	assert.equal(await run('cmake.buildkit.gdb.exe'), 'gdb');
+	assert.equal(await run('cmake.buildkit.bin'), null);
+	// the launch PATH degrades to the plain system PATH as there is no launch target directory either
+	assert.equal(await run('cmake.buildkit.launch.path'), systemPath);
+	// kits/presets management is unaffected as it never queries CMakeTools
+	assert.equal(mock.extension.cmakeKits().length, 8);
+});
+
 test('generator selection follows cmake.generator', async () => {
 	set({});
 	mock.kitName = 'UCRT64';
@@ -260,6 +280,17 @@ test('kits descriptor round-trip via inject and remove', async () => {
 		assert.equal((await mock.extension.updateKitsFile(file, false)).count, 8);
 		kits = JSON.parse(fs.readFileSync(file, 'utf8'));
 		assert.deepEqual(kits.map(kit => kit.name), ['Custom']);
+	} finally {
+		fs.rmSync(dir, {recursive: true, force: true});
+	}
+});
+
+test('non-array kits descriptor is reported as unparsable', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'msys2-kits-bad-'));
+	try {
+		const file = path.join(dir, 'cmake-kits.json');
+		fs.writeFileSync(file, '{"not": "an array"}');
+		await assert.rejects(() => mock.extension.updateKitsFile(file, true), /not a JSON array/);
 	} finally {
 		fs.rmSync(dir, {recursive: true, force: true});
 	}
@@ -419,4 +450,6 @@ test('dashboard HTML embeds the model behind a strict CSP', async () => {
 	}
 	// the settings form is driven by the embedded metadata
 	assert.ok(html.includes('data-setting='));
+	// a missing descriptor path renders as an em-dash entity rather than getting escaped into literal text
+	assert.ok(html.includes(`descriptor.file ? esc(descriptor.file) : '&#8212;'`));
 });
