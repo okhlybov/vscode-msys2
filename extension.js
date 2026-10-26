@@ -8,6 +8,9 @@ const pkg = require('./package.json');
 // Identifier of this extension as the manager of the CMake Kits entries it generates
 const kitsManager = 'fougas.msys2';
 
+// System-specific separator of the PATH entries
+const pathSeparator = (process.platform == 'win32' ? ';' : ':');
+
 function normalizePath(p) {
 	return p ? p.replace(/\\/g, '/') : '';
 }
@@ -100,6 +103,41 @@ const mpiTools = {
 	mpicxx: 'mpicxx.exe',
 	mpifort: 'mpifort.exe'
 };
+
+// Tool variables installed by the injected kits/presets keyed by the tool identifier
+const toolVariables = {
+	cc: 'CMAKE_C_COMPILER',
+	cxx: 'CMAKE_CXX_COMPILER',
+	fc: 'CMAKE_Fortran_COMPILER',
+	mpicc: 'MPI_C_COMPILER',
+	mpicxx: 'MPI_CXX_COMPILER',
+	mpifort: 'MPI_Fortran_COMPILER'
+};
+
+// Canonical executable names CMake itself searches for when the respective tool variable is unset
+const canonicalToolNames = {
+	cc: ['gcc.exe', 'clang.exe'],
+	cxx: ['g++.exe', 'clang++.exe'],
+	fc: ['gfortran.exe', 'flang.exe'],
+	mpicc: ['mpicc.exe'],
+	mpicxx: ['mpicxx.exe'],
+	mpifort: ['mpifort.exe']
+};
+
+// Make program name CMake itself searches for when CMAKE_MAKE_PROGRAM is unset, depending on the generator in effect
+function canonicalMakeName(generator) {
+	if(/Ninja/i.test(generator)) return 'ninja.exe';
+	if(/MinGW/i.test(generator)) return 'mingw32-make.exe';
+	return 'make.exe';
+}
+
+// Check whether a tool resolved to the given executable is locatable via the PATH the kits/presets install:
+// the executable must exist on disk within the toolchain bin directory and bear a name CMake searches for by itself,
+// in which case the explicit tool variable is redundant and gets omitted; a non-canonical name (a Cygwin-hosted
+// cross-prefixed compiler, for example) always warrants the explicit variable to prevent wrong tools from the PATH
+async function toolFindableViaPath(exe, expectedNames) {
+	return expectedNames.includes(exe.split('/').pop()) && await pathExists(exe);
+}
 
 // Cygwin-hosted toolchain environment with its own GNU compiler suite and no MPI support
 function cygwinEnv(bit) {
@@ -250,29 +288,28 @@ function registerBuildKitCommands(subscriptions, pathSeparator, systemPath) {
 // Toolchain environments in the order their CMake Kits are injected
 const kitOrder = ['mingw32', 'mingw64', 'ucrt64', 'clang32', 'clang64', 'msys2', 'cygwin32', 'cygwin64'];
 
-// Compose the extension-managed CMake Kits entries; the manager property marks the ownership
-function cmakeKits() {
-	return kitOrder.map(name => {
+// Compose the extension-managed CMake Kits entries; the manager property marks the ownership.
+// The explicit tool variables are omitted whenever the tool is locatable via the PATH the kit installs
+async function cmakeKits() {
+	const kits = [];
+	for(const name of kitOrder) {
 		const env = environments[name];
-		const settings = {
-			CMAKE_C_COMPILER: `\${command:${name}.cc.exe}`,
-			CMAKE_CXX_COMPILER: `\${command:${name}.cxx.exe}`,
-			CMAKE_Fortran_COMPILER: `\${command:${name}.fc.exe}`
-		};
-		if(env.kitMPI) {
-			settings.MPI_C_COMPILER = `\${command:${name}.mpicc.exe}`;
-			settings.MPI_CXX_COMPILER = `\${command:${name}.mpicxx.exe}`;
-			settings.MPI_Fortran_COMPILER = `\${command:${name}.mpifort.exe}`;
+		const settings = {};
+		for(const [tool, variable] of Object.entries(toolVariables)) {
+			if(tool in mpiTools && !env.kitMPI) continue;
+			const exe = await vscode.commands.executeCommand(`${name}.${tool}.exe`);
+			if(!await toolFindableViaPath(exe, canonicalToolNames[tool])) settings[variable] = `\${command:${name}.${tool}.exe}`;
 		}
-		return {
+		kits.push({
 			name: env.kit,
 			preferredGenerator: {name: env.kitGenerator},
 			environmentVariables: {PATH: `\${command:${name}.path}`},
 			cmakeSettings: settings,
 			keep: true,
 			manager: kitsManager
-		};
-	});
+		});
+	}
+	return kits;
 }
 
 // Check whether a kit entry is owned by this extension: either explicitly marked or bearing one of the managed names
@@ -280,15 +317,20 @@ function isManagedKit(kit, managedNames) {
 	return kit.manager === kitsManager || managedNames.has(kit.name);
 }
 
+// Names of the extension-managed CMake Kits in the injection order
+function managedKitNames() {
+	return kitOrder.map(name => environments[name].kit);
+}
+
 // Merge the extension-managed kits into the existing ones, replacing the same-named entries and keeping the foreign ones intact
-function mergeKits(existing) {
-	const managedNames = new Set(cmakeKits().map(kit => kit.name));
-	return [...existing.filter(kit => !isManagedKit(kit, managedNames)), ...cmakeKits()];
+function mergeKits(existing, injected) {
+	const managedNames = new Set(injected.map(kit => kit.name));
+	return [...existing.filter(kit => !isManagedKit(kit, managedNames)), ...injected];
 }
 
 // Strip the extension-managed kits from the existing entries keeping the foreign ones intact
 function removeKits(existing) {
-	const managedNames = new Set(cmakeKits().map(kit => kit.name));
+	const managedNames = new Set(managedKitNames());
 	return existing.filter(kit => !isManagedKit(kit, managedNames));
 }
 
@@ -304,11 +346,12 @@ async function updateKitsFile(file, inject) {
 		existed = false;
 	}
 	if(!Array.isArray(existing)) throw new Error(`cannot parse ${file}: not a JSON array`);
-	const updated = inject ? mergeKits(existing) : removeKits(existing);
+	const injected = inject ? await cmakeKits() : null;
+	const updated = inject ? mergeKits(existing, injected) : removeKits(existing);
 	if(!updated.length && !existed && !inject) return {file, count: 0}; // nothing to remove, keep the missing descriptor as is
 	await fs.mkdir(path.dirname(file), {recursive: true});
 	await fs.writeFile(file, JSON.stringify(updated, null, 2) + '\n');
-	return {file, count: inject ? cmakeKits().length : existing.length - updated.length};
+	return {file, count: inject ? injected.length : existing.length - updated.length};
 }
 
 // VS Code user configuration folder name, e.g. Code, Code - Insiders, VSCodium
@@ -328,9 +371,14 @@ function userKitsFile() {
 	return path.join(appData, appConfigFolder(), 'User', 'cmake-kits.json');
 }
 
+// Primary workspace folder of the project, if any
+function projectFolder() {
+	return vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+}
+
 // Location of the per-project cmake-kits.json descriptor of the primary workspace folder
 function projectKitsFile() {
-	const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+	const folder = projectFolder();
 	return folder ? path.join(folder.uri.fsPath, '.vscode', 'cmake-kits.json') : null;
 }
 
@@ -348,30 +396,29 @@ function managedPresetNames(existing) {
 	return new Set([...kitOrder, ...recorded]);
 }
 
-// Compose the extension-managed CMake Presets with the toolchain paths resolved to their current values
+// Compose the extension-managed CMake Presets with the toolchain paths resolved to their current values.
+// The explicit tool variables are omitted whenever the tool is locatable via the PATH the preset installs;
+// the PATH itself prepends the toolchain bin directory to the existing one via the $penv macro
 async function cmakePresets() {
 	const generator = vscode.workspace.getConfiguration().get('msys2.presets.generator') || 'Ninja';
 	const makeTool = /Ninja/i.test(generator) ? 'ninja' : 'make';
 	const configurePresets = [], buildPresets = [];
 	for(const name of kitOrder) {
 		const env = environments[name];
-		const cacheVariables = {
-			CMAKE_C_COMPILER: await vscode.commands.executeCommand(`${name}.cc.exe`),
-			CMAKE_CXX_COMPILER: await vscode.commands.executeCommand(`${name}.cxx.exe`),
-			CMAKE_Fortran_COMPILER: await vscode.commands.executeCommand(`${name}.fc.exe`),
-			CMAKE_MAKE_PROGRAM: await vscode.commands.executeCommand(`${name}.${makeTool}.exe`)
-		};
-		if(env.kitMPI) {
-			cacheVariables.MPI_C_COMPILER = await vscode.commands.executeCommand(`${name}.mpicc.exe`);
-			cacheVariables.MPI_CXX_COMPILER = await vscode.commands.executeCommand(`${name}.mpicxx.exe`);
-			cacheVariables.MPI_Fortran_COMPILER = await vscode.commands.executeCommand(`${name}.mpifort.exe`);
+		const cacheVariables = {};
+		for(const [tool, variable] of Object.entries(toolVariables)) {
+			if(tool in mpiTools && !env.kitMPI) continue;
+			const exe = await vscode.commands.executeCommand(`${name}.${tool}.exe`);
+			if(!await toolFindableViaPath(exe, canonicalToolNames[tool])) cacheVariables[variable] = exe;
 		}
+		const makeExe = await vscode.commands.executeCommand(`${name}.${makeTool}.exe`);
+		if(!await toolFindableViaPath(makeExe, [canonicalMakeName(generator)])) cacheVariables.CMAKE_MAKE_PROGRAM = makeExe;
 		configurePresets.push({
 			displayName: env.kit,
 			name,
 			generator,
 			binaryDir: `\${sourceDir}/build/${name}`,
-			environment: {PATH: await vscode.commands.executeCommand(`${name}.path`)},
+			environment: {PATH: `${await vscode.commands.executeCommand(`${name}.bin`)}${pathSeparator}$penv{PATH}`},
 			cacheVariables
 		});
 		buildPresets.push({displayName: env.kit, name, configurePreset: name});
@@ -429,7 +476,7 @@ async function updatePresetsFile(file, inject) {
 
 // Location of a CMake presets descriptor of the primary workspace folder
 function workspacePresetsFile(name) {
-	const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+	const folder = projectFolder();
 	return folder ? path.join(folder.uri.fsPath, name) : null;
 }
 
@@ -506,7 +553,7 @@ async function kitsSummary(file) {
 	if(!file || !await pathExists(file)) return {file: file || null, exists: false, managed: 0, foreign: 0};
 	try {
 		const kits = JSON.parse(await fs.readFile(file, 'utf8'));
-		const managedNames = new Set(cmakeKits().map(kit => kit.name));
+		const managedNames = new Set(managedKitNames());
 		const managed = kits.filter(kit => isManagedKit(kit, managedNames)).length;
 		return {file, exists: true, managed, foreign: kits.length - managed};
 	} catch {
@@ -539,6 +586,10 @@ async function dashboardModel() {
 	for(const setting of dashboardSettings) {
 		if(setting.kind == 'dir' && settings[setting.name]) validity[setting.name] = await pathExists(settings[setting.name]);
 	}
+	// the build system in effect for the project as prescribed by the folder-scoped CMakeTools setting
+	const folder = projectFolder();
+	const useCMakePresets = vscode.workspace.getConfiguration('cmake', folder ? folder.uri : undefined).get('useCMakePresets');
+	const buildSystem = useCMakePresets == 'never' || useCMakePresets === false ? 'kits' : useCMakePresets == 'always' ? 'presets' : 'auto';
 	const rows = [];
 	for(const name of kitOrder) {
 		const root = await vscode.commands.executeCommand(`${name}.root`);
@@ -555,6 +606,7 @@ async function dashboardModel() {
 		settingsMeta: dashboardSettings,
 		settingsGroups: dashboardSettingGroups,
 		settingsValidity: validity,
+		buildSystem,
 		environments: rows,
 		kits: {user: await kitsSummary(userKitsFile()), project: await kitsSummary(projectKitsFile())},
 		presets: {user: await presetsSummary(userPresetsFile()), project: await presetsSummary(projectPresetsFile())}
@@ -589,6 +641,7 @@ input, select { background: var(--vscode-input-background); color: var(--vscode-
 .field { display: flex; gap: 4px; align-items: center; }
 .field input { flex: 1; width: auto; min-width: 0; }
 .field button { margin: 0; }
+#buildsystem { width: auto; }
 input.invalid { border-color: rgba(248,81,73,.8); background: rgba(248,81,73,.12); }
 .settings { display: flex; gap: 14px 28px; align-items: start; flex-wrap: wrap; }
 .group { display: grid; grid-template-columns: max-content 320px; gap: 6px 14px; align-items: center; }
@@ -615,6 +668,17 @@ input.invalid { border-color: rgba(248,81,73,.8); background: rgba(248,81,73,.12
 </div>
 </section>
 <section><h2>Toolchain Environments</h2><div id="environments"></div></section>
+<section>
+<h2>Build System</h2>
+<div class="row">
+<label for="buildsystem" class="muted">System in effect for the project</label>
+<select id="buildsystem" title="Overrides the CMakeTools build system choice in the project folder settings; resolves the kits vs presets precedence when both descriptors are present">
+<option value="auto">Auto (CMakeTools decides)</option>
+<option value="kits">CMake Kits</option>
+<option value="presets">CMake Presets</option>
+</select>
+</div>
+</section>
 <section id="descriptors" class="descriptors"></section>
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
@@ -672,11 +736,12 @@ function descriptorRow(title, descriptor, target) {
 		+ '<code' + (descriptor.file ? ' title="' + esc(descriptor.file) + '"' : '') + '>' + (descriptor.file ? esc(descriptor.file) : '&#8212;') + '</code>'
 		+ '<span class="muted">' + esc(state) + '</span>'
 		+ action(target, 'inject', 'Inject', !descriptor.file)
-		+ action(target, 'remove', 'Remove', !descriptor.file);
+		+ action(target, 'remove', 'Yank', !descriptor.file);
 }
 
 function render() {
 	el('version').textContent = 'v' + model.version;
+	el('buildsystem').value = model.buildSystem;
 	renderSettings();
 	renderEnvironments();
 	// a single grid keeps the paths, states and action buttons of all the descriptor rows column-aligned
@@ -698,6 +763,7 @@ document.addEventListener('click', event => {
 	if(button) vscode.postMessage({type: 'action', target: button.dataset.target, op: button.dataset.op});
 });
 el('refresh').addEventListener('click', () => vscode.postMessage({type: 'refresh'}));
+el('buildsystem').addEventListener('change', () => vscode.postMessage({type: 'buildSystem', value: el('buildsystem').value}));
 el('save').addEventListener('click', () => {
 	const values = {};
 	document.querySelectorAll('[data-setting]').forEach(input => values[input.dataset.setting] = input.value);
@@ -758,6 +824,18 @@ function registerDashboardCommand(subscriptions) {
 					if(picked && picked.length) await panel.webview.postMessage({type: 'picked', setting: meta.name, path: picked[0].fsPath});
 				}
 			}
+			else if(message.type == 'buildSystem') {
+				const folder = projectFolder();
+				if(!folder) {
+					vscode.window.showErrorMessage('MSYS2: no workspace folder is open');
+				}
+				else {
+					const value = message.value == 'kits' ? 'never' : message.value == 'presets' ? 'always' : undefined; // auto clears the per-project override
+					await vscode.workspace.getConfiguration('cmake', folder.uri).update('useCMakePresets', value, vscode.ConfigurationTarget.WorkspaceFolder);
+					vscode.window.showInformationMessage(`MSYS2: project build system ${value === undefined ? 'reset to auto' : 'set to CMake ' + message.value[0].toUpperCase() + message.value.slice(1)}`);
+				}
+				await postModel();
+			}
 			else if(message.type == 'saveSettings') {
 				const config = vscode.workspace.getConfiguration();
 				const known = new Set(dashboardSettings.map(setting => setting.name));
@@ -775,8 +853,6 @@ function registerDashboardCommand(subscriptions) {
 }
 
 function activate(context) {
-
-	const pathSeparator = (process.platform == 'win32' ? ';' : ':');
 
 	const rawPath = process.env.PATH || process.env.Path || '';
 	const systemPath = rawPath.split(/\\?;/).join(pathSeparator); // Proper escaping of the system PATH

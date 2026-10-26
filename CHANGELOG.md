@@ -14,6 +14,12 @@
 
 - CMake Presets injection & removal commands for the per-user and shared project descriptors
 
+- Per-project build system switch resolving the CMake Kits vs CMake Presets precedence interference
+
+- The injected kits and presets omit the explicit tool variables whenever the tools are locatable via the PATH
+
+- The injected presets prepend the toolchain bin directory to the existing PATH via the $penv macro instead of baking the full system path list
+
 - Regression test suite
 
 - The build kit commands degrade gracefully when the CMakeTools extension is not installed

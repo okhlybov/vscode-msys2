@@ -30,7 +30,9 @@ The extension provides a GUI dashboard invoked via **`Ctrl+Shift+P` |> MSYS2: Op
 
 - Editing of the extension settings (the toolchain roots, the MinGW providers and the CMake Presets generator); the toolchain root fields come with directory pickers; an emptied root field reverts the setting to its provider-derived default, and the values are stored in the per user settings
 
-- Injecting and removing the extension-managed CMake Kits and CMake Presets in the same fashion as the respective commands do
+- Injecting and yanking the extension-managed CMake Kits and CMake Presets in the same fashion as the respective inject/remove commands do
+
+- A per-project build system switch (**Auto / CMake Kits / CMake Presets**) which sets the CMakeTools `cmake.useCMakePresets` setting in the project folder settings; it resolves the kits vs presets precedence interference arising when both descriptors are present in the same project
 
 The dashboard reflects the state as of its last refresh: use the **Refresh** button after altering the settings or the descriptors externally.
 
@@ -202,6 +204,8 @@ The extension automates the CMake Kits management with the following commands av
 
 The inject commands add or update the kit entries listed below in the user-local and the primary workspace folder's `.vscode` `cmake-kits.json` descriptors, respectively, marking them with the `manager` property. The remove commands strip both the marked entries and the legacy same-named ones while keeping any third-party kits intact.
 
+**Note** that a kit entry carries only the tool variables which cannot be resolved via the PATH alone: whenever a tool executable is present within the toolchain `bin` directory under its canonical name (`gcc.exe`, for example), the respective variable is omitted letting the CMake locate the tool via the PATH. Non-canonical tools (the Cygwin-hosted cross-prefixed MinGW compilers, for example) and the missing ones always carry the explicit variable.
+
 Alternatively, the kits can be configured manually: issue the command **`Ctrl+Shift+P` |> CMake: Edit User-Local CMake Kits** and paste the configuration below
 
 ```json
@@ -329,6 +333,8 @@ For the projects using the CMake presets instead of the CMake Kits, the extensio
 Unlike the CMake Kits descriptors, the CMake presets support no command substitution, hence the injected presets carry the toolchain paths resolved at the injection time. This makes the per-user `CMakeUserPresets.json` descriptor the natural target as it is intended to hold the machine-specific configurations; the shared `CMakePresets.json` descriptor is supported as well for the uniformly configured environments. Note that there is no sitewide CMake presets descriptor.
 
 Each of the eight supported toolchains gets a configure preset accompanied by a matching build preset, both named after the toolchain (`ucrt64`, for example). The generator used by the presets is controlled by the `msys2.presets.generator` configuration setting which defaults to `Ninja`. After changing it or any of the toolchain root settings, re-run the inject command to refresh the resolved paths.
+
+The presets prepend the toolchain `bin` directory to the existing PATH by means of the `$penv{PATH}` macro rather than baking the full system path list, keeping the descriptor machine-independent (this requires the CMakePresets schema version 3, i.e. CMake 3.21+, which the injected descriptors use). Similarly to the kits, the explicit tool variables are omitted for the tools locatable via the PATH.
 
 The ownership of the managed entries is recorded in the descriptors' `vendor` field; the remove commands strip both the recorded entries and the legacy same-named ones while keeping any third-party presets intact.
 

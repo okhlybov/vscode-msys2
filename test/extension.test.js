@@ -32,6 +32,8 @@ class MockVSCode {
 		this.openDialogOptions = null;
 		this.openDialogResult = null;
 		this.panels = [];
+		this.configUpdates = [];
+		this.messages = [];
 	}
 
 	commands = {
@@ -57,13 +59,15 @@ class MockVSCode {
 
 	ViewColumn = {Active: 1};
 
+	ConfigurationTarget = {Global: 1, Workspace: 2, WorkspaceFolder: 3};
+
 	window = {
 		showOpenDialog: async options => {
 			this.openDialogOptions = options;
 			return this.openDialogResult;
 		},
-		showInformationMessage: async () => {},
-		showErrorMessage: async () => {},
+		showInformationMessage: async message => this.messages.push(message),
+		showErrorMessage: async message => this.messages.push(message),
 		createWebviewPanel: () => {
 			const panel = {
 				postings: [],
@@ -84,7 +88,14 @@ class MockVSCode {
 
 	workspace = {
 		workspaceFolders: null,
-		getConfiguration: () => ({get: key => this.settings.get(key)})
+		getConfiguration: () => ({
+			get: key => this.settings.get(key),
+			update: async (key, value, target) => {
+				this.configUpdates.push({key, value, target});
+				if(value === undefined) this.settings.delete(key);
+				else this.settings.set(key, value);
+			}
+		})
 	};
 }
 
@@ -224,7 +235,7 @@ test('buildkit commands degrade gracefully without CMakeTools installed', async 
 	// the launch PATH degrades to the plain system PATH as there is no launch target directory either
 	assert.equal(await run('cmake.buildkit.launch.path'), systemPath);
 	// kits/presets management is unaffected as it never queries CMakeTools
-	assert.equal(mock.extension.cmakeKits().length, 8);
+	assert.equal((await mock.extension.cmakeKits()).length, 8);
 });
 
 test('generator selection follows cmake.generator', async () => {
@@ -240,13 +251,14 @@ test('generator selection follows cmake.generator', async () => {
 	assert.equal(await run('cmake.buildkit.generator.exe'), 'c:/msys64/ucrt64/bin/mingw32-make.exe');
 });
 
-test('managed CMake Kits match the toolchain environments', () => {
-	const kits = mock.extension.cmakeKits();
+test('managed CMake Kits match the toolchain environments', async () => {
+	const kits = await mock.extension.cmakeKits();
 	assert.deepEqual(kits.map(kit => kit.name), ['MinGW32', 'MinGW64', 'UCRT64', 'Clang32', 'Clang64', 'MSYS2', 'Cygwin32', 'Cygwin64']);
 	for(const kit of kits) {
 		assert.equal(kit.manager, 'fougas.msys2', kit.name);
 		assert.equal(kit.keep, true, kit.name);
 		assert.ok(kit.environmentVariables.PATH.startsWith('${command:'), kit.name);
+		// none of the tools exist on this machine, hence every explicit variable is kept
 		assert.ok(kit.cmakeSettings.CMAKE_C_COMPILER.startsWith('${command:'), kit.name);
 	}
 	const mingw = kits.find(kit => kit.name == 'MinGW64');
@@ -258,12 +270,12 @@ test('managed CMake Kits match the toolchain environments', () => {
 	assert.equal(msys.cmakeSettings.MPI_C_COMPILER, undefined); // no MPI under the POSIX-like environments
 });
 
-test('merging preserves foreign kits and replaces the managed ones', () => {
+test('merging preserves foreign kits and replaces the managed ones', async () => {
 	const existing = [
 		{name: 'Custom-Clang-LLVM', keep: true},
 		{name: 'MinGW64', compilers: {C: 'D:/old/gcc.exe'}} // legacy hand-pasted entry
 	];
-	const merged = mock.extension.mergeKits(existing);
+	const merged = mock.extension.mergeKits(existing, await mock.extension.cmakeKits());
 	assert.equal(merged.length, 9);
 	assert.ok(merged.some(kit => kit.name == 'Custom-Clang-LLVM' && kit.manager === undefined));
 	const mingw = merged.filter(kit => kit.name == 'MinGW64');
@@ -282,12 +294,12 @@ test('removal strips the managed and legacy same-named kits only', () => {
 	assert.deepEqual(remaining.map(kit => kit.name), ['Custom-Clang-LLVM']);
 });
 
-test('foreign kits remain intact through inject and remove', () => {
+test('foreign kits remain intact through inject and remove', async () => {
 	const foreign = [
 		{name: 'Custom-Clang-LLVM', compilers: {C: '/usr/bin/clang'}, preferredGenerator: {name: 'Ninja'}, keep: true},
 		{name: 'GCC 13.2', compilers: {C: 'D:\\tools\\gcc.exe'}, environmentVariables: {PATH: 'D:\\tools\\bin'}}
 	];
-	const injected = mock.extension.mergeKits([...foreign, {name: 'MinGW64', compilers: {C: 'D:/old/gcc.exe'}}]);
+	const injected = mock.extension.mergeKits([...foreign, {name: 'MinGW64', compilers: {C: 'D:/old/gcc.exe'}}], await mock.extension.cmakeKits());
 	// the foreign entries are passed through as the very same objects, not rebuilt copies
 	assert.equal(injected[0], foreign[0]);
 	assert.equal(injected[1], foreign[1]);
@@ -509,6 +521,71 @@ test('dashboard flags the settings roots missing on disk', async () => {
 	assert.equal(model.settingsValidity['msys2.root'], false);
 });
 
+test('per-project build system switch follows and drives cmake.useCMakePresets', async () => {
+	set({});
+	mock.workspace.workspaceFolders = [{uri: {fsPath: 'P:/ws'}}];
+	// the effective state derives from the CMakeTools setting
+	assert.equal((await mock.extension.dashboardModel()).buildSystem, 'auto');
+	set({'useCMakePresets': 'never'});
+	assert.equal((await mock.extension.dashboardModel()).buildSystem, 'kits');
+	set({'useCMakePresets': 'always'});
+	assert.equal((await mock.extension.dashboardModel()).buildSystem, 'presets');
+	// legacy boolean forms of the setting are recognized as well
+	set({'useCMakePresets': false});
+	assert.equal((await mock.extension.dashboardModel()).buildSystem, 'kits');
+	// the switch writes the folder-scoped override
+	set({});
+	await run('msys2.dashboard'); // reveals the panel kept by the singleton command, its message handler stays the same
+	const onMessage = mock.panels[mock.panels.length - 1].handlers[0];
+	await onMessage({type: 'buildSystem', value: 'kits'});
+	assert.deepEqual(mock.configUpdates[0], {key: 'useCMakePresets', value: 'never', target: 3});
+	await onMessage({type: 'buildSystem', value: 'presets'});
+	assert.deepEqual(mock.configUpdates[1], {key: 'useCMakePresets', value: 'always', target: 3});
+	await onMessage({type: 'buildSystem', value: 'auto'});
+	assert.equal(mock.configUpdates[2].value, undefined);
+	assert.equal(mock.settings.has('useCMakePresets'), false); // the override is cleared
+	// without a workspace folder the switch reports an error
+	mock.workspace.workspaceFolders = null;
+	await onMessage({type: 'buildSystem', value: 'kits'});
+	assert.ok(mock.messages.some(m => m.includes('no workspace folder')));
+});
+
+test('tool variables are omitted when the tools are locatable via the PATH', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'msys2-findable-'));
+	try {
+		const bin = path.join(dir, 'usr', 'bin');
+		fs.mkdirSync(bin, {recursive: true});
+		for(const exe of ['gcc.exe', 'g++.exe', 'gfortran.exe', 'make.exe', 'ninja.exe']) fs.writeFileSync(path.join(bin, exe), '');
+		set({'msys2.root': dir});
+		// canonical tools present within the toolchain bin: the explicit variables are omitted
+		const kits = await mock.extension.cmakeKits();
+		const msys = kits.find(kit => kit.name == 'MSYS2');
+		assert.equal(msys.cmakeSettings.CMAKE_C_COMPILER, undefined);
+		assert.equal(msys.cmakeSettings.CMAKE_Fortran_COMPILER, undefined);
+		assert.equal(msys.environmentVariables.PATH, '${command:msys2.path}'); // the PATH itself stays
+		// a missing toolchain keeps every explicit variable
+		assert.ok(kits.find(kit => kit.name == 'UCRT64').cmakeSettings.CMAKE_C_COMPILER.startsWith('${command:'));
+		// the presets behave the same and prepend the bin directory to the existing PATH instead of baking the system one
+		const presets = await mock.extension.cmakePresets();
+		const msysPreset = presets.configurePresets.find(preset => preset.name == 'msys2');
+		assert.equal(msysPreset.cacheVariables.CMAKE_C_COMPILER, undefined);
+		assert.equal(msysPreset.cacheVariables.CMAKE_MAKE_PROGRAM, undefined); // ninja is locatable
+		assert.equal(msysPreset.environment.PATH, `${bin}${pathSeparator}$penv{PATH}`);
+		const ucrtPreset = presets.configurePresets.find(preset => preset.name == 'ucrt64');
+		assert.equal(ucrtPreset.cacheVariables.CMAKE_C_COMPILER, `${dir}/ucrt64/bin/gcc.exe`);
+		// a Cygwin-hosted cross-prefixed compiler keeps the explicit variable even when present on disk:
+		// its name is not what CMake searches for, and a bare-name lookup would locate the wrong tool
+		const crossBin = path.join(dir, 'cyg64', 'bin');
+		fs.mkdirSync(crossBin, {recursive: true});
+		fs.writeFileSync(path.join(crossBin, 'i686-w64-mingw32-gcc.exe'), '');
+		set({'msys2.root': dir, 'mingw32.provider': 'cygwin64', 'cygwin64.root': path.join(dir, 'cyg64')});
+		const cross = (await mock.extension.cmakeKits()).find(kit => kit.name == 'MinGW32');
+		assert.equal(cross.cmakeSettings.CMAKE_C_COMPILER, '${command:mingw32.cc.exe}');
+	} finally {
+		fs.rmSync(dir, {recursive: true, force: true});
+	}
+});
+
 test('dashboard HTML embeds the model behind a strict CSP', async () => {
 	set({});
 	const model = await mock.extension.dashboardModel();
@@ -544,4 +621,9 @@ test('dashboard HTML embeds the model behind a strict CSP', async () => {
 	// the missing root directories are highlighted and a picked directory clears the highlight
 	assert.ok(html.includes('input.invalid'));
 	assert.ok(html.includes("classList.remove('invalid')"));
+	// the per-project build system switch is present and model-driven
+	assert.ok(html.includes('id="buildsystem"'));
+	assert.ok(html.includes('"buildSystem":"auto"'));
+	// the remove actions are labeled to complement the inject ones
+	assert.ok(html.includes(`action(target, 'remove', 'Yank'`));
 });
