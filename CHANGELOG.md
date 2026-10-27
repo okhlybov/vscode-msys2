@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.11.1]
+
+- Fix site-local CMakeKits location
+
 ## [0.11.0] 2026-10-26
 
 - VS Code required version bump to 1.74.0

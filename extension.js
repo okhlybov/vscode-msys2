@@ -354,21 +354,16 @@ async function updateKitsFile(file, inject) {
 	return {file, count: inject ? injected.length : existing.length - updated.length};
 }
 
-// VS Code user configuration folder name, e.g. Code, Code - Insiders, VSCodium
-function appConfigFolder() {
-	const app = vscode.env.appName || '';
-	if(/insiders/i.test(app)) return 'Code - Insiders';
-	if(/codium/i.test(app)) return 'VSCodium';
-	return 'Code';
-}
-
-// Location of the user-local cmake-kits.json descriptor used by the CMakeTools
+// Location of the user-local cmake-tools-kits.json descriptor used by CMake Tools
 function userKitsFile() {
-	const appData = process.env.VSCODE_PORTABLE_USER_DATA
-		|| (process.platform == 'win32'
-			? process.env.APPDATA
-			: path.join(os.homedir(), process.platform == 'darwin' ? 'Library/Application Support' : '.config'));
-	return path.join(appData, appConfigFolder(), 'User', 'cmake-kits.json');
+	if(process.platform == 'win32') {
+		const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+		return path.join(localAppData, 'CMakeTools', 'cmake-tools-kits.json');
+	}
+	if(process.platform == 'darwin') {
+		return path.join(os.homedir(), 'Library', 'Application Support', 'CMakeTools', 'cmake-tools-kits.json');
+	}
+	return path.join(os.homedir(), '.local', 'share', 'CMakeTools', 'cmake-tools-kits.json');
 }
 
 // Primary workspace folder of the project, if any
