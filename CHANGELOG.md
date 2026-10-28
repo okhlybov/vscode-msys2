@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.11.1]
+## [0.11.1] 2026-10-28
 
 - Fix site-local CMakeKits location
 
